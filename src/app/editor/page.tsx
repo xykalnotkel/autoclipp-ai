@@ -304,22 +304,25 @@ export default function EditorPage() {
     addLog(`Generate clips online - videoUrl:${!!videoUrl} yt:${!!youtubeInfo} dur:${duration}`)
     if (!videoUrl && !youtubeInfo) {
       addLog('Gagal: belum ada video online')
-      alert('Upload video dulu di Langkah 1 - harus upload ke Cloudinary dulu')
+      alert('Upload video dulu di Langkah 1 - harus upload ke Cloudinary dulu atau tempel YouTube')
       return
     }
-    if (!videoUrl) {
+    // YouTube tanpa downloadUrl tetap boleh - pakai youtubeUrl untuk transcribe
+    if (!videoUrl && youtubeInfo) {
+      addLog('YouTube mode tanpa Cloudinary URL - transcribe via youtubeUrl online')
+    } else if (!videoUrl) {
       addLog('Gagal: videoUrl Cloudinary belum ready - tunggu upload selesai')
       alert('Tunggu upload ke Cloudinary selesai dulu')
       return
     }
     setIsProcessing(true)
-    addLog('Memanggil /api/transcribe online - server Groq/expanded...')
+    addLog('Memanggil /api/transcribe online - server...')
     try {
-      const durToUse = duration && duration > 0 ? duration : 120
+      const durToUse = duration && duration > 0 ? duration : youtubeInfo?.duration || 120
       const res = await fetch('/api/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoUrl, duration: durToUse, youtubeUrl: youtubeInfo ? youtubeUrl : undefined })
+        body: JSON.stringify({ videoUrl: videoUrl || undefined, duration: durToUse, youtubeUrl: youtubeInfo ? youtubeUrl : undefined })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Transcribe API error')
@@ -330,8 +333,8 @@ export default function EditorPage() {
       setDuration(apiDur)
       genClips(words, apiDur)
     } catch (e: any) {
-      addLog(`Transcribe online error: ${e.message} - tidak ada fallback offline`)
-      alert(`Gagal transcribe online: ${e.message}. Coba lagi, pastikan file sudah terupload ke Cloudinary.`)
+      addLog(`Transcribe online error: ${e.message}`)
+      alert(`Gagal transcribe online: ${e.message}. Coba lagi.`)
     }
     setIsProcessing(false)
   }
@@ -442,10 +445,10 @@ export default function EditorPage() {
   }
 
   const handleSaveProject = async () => {
-    addLog(`Klik Simpan online - clips:${clips.length} selected:${!!selectedClip} video:${!!videoUrl}`)
-    if (!videoUrl) {
-      addLog('Gagal simpan online: belum ada Cloudinary URL')
-      alert('Upload video dulu sampai Cloudinary URL ready - tunggu upload selesai')
+    addLog(`Klik Simpan online - clips:${clips.length} selected:${!!selectedClip} video:${!!videoUrl} yt:${!!youtubeInfo}`)
+    if (!videoUrl && !youtubeInfo) {
+      addLog('Gagal simpan online: belum ada video/YouTube')
+      alert('Upload video dulu sampai Cloudinary URL ready atau pakai YouTube')
       return
     }
     if (!clips.length) {
@@ -693,7 +696,11 @@ export default function EditorPage() {
   const doExport = async () => {
     addLog(`Export online clip ${selectedClip?.id} style ${styleKey}`)
     if (!selectedClip) { addLog('Gagal export online: belum pilih clip'); alert('Pilih clip dulu di Langkah 3'); return }
-    if (!videoUrl) { addLog('Gagal export online: belum ada Cloudinary URL'); alert('Tunggu upload Cloudinary selesai'); return }
+    if (!videoUrl && !youtubeInfo?.downloadUrl) { 
+      addLog('Gagal export online: belum ada video file - YouTube tanpa downloadUrl tidak bisa export, upload file MP4')
+      alert('Untuk export, upload file MP4 di Langkah 1 atau pakai YouTube yang ada downloadUrl. YouTube ini cuma thumbnail preview.')
+      return 
+    }
     setShowExport(true)
     setProgress(0)
     setExportStatus('Menyiapkan online...')
@@ -825,8 +832,8 @@ export default function EditorPage() {
               <span className={`px-2 py-1 rounded-full border ${videoUrl ? 'bg-green-50 border-green-200 text-green-700' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{videoUrl ? 'Cloudinary ✓' : duration ? `${duration.toFixed(1)}s` : 'no video'}</span>
               <span className="px-2 py-1 rounded-full bg-[#0A0A0A] text-white">ONLINE</span>
             </div>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={handleSaveProject} disabled={saving || !videoUrl}><IconSave />{saving ? 'Menyimpan...' : 'Simpan'}</Button>
-            <Button size="sm" className="h-8 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] gap-1.5" onClick={() => selectedClip ? doExport() : handleTestPlay()} disabled={!videoUrl && !previewBlobUrl}><IconDownload />{selectedClip ? 'Export' : 'Play'}</Button>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={handleSaveProject} disabled={saving || (!videoUrl && !youtubeInfo)}><IconSave />{saving ? 'Menyimpan...' : 'Simpan'}</Button>
+            <Button size="sm" className="h-8 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] gap-1.5" onClick={() => selectedClip ? doExport() : handleTestPlay()} disabled={!videoUrl && !previewBlobUrl && !youtubeInfo}><IconDownload />{selectedClip ? 'Export' : 'Play'}</Button>
           </div>
         </div>
       </div>
@@ -1114,8 +1121,8 @@ export default function EditorPage() {
             )}
 
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <Button className="h-11 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] text-[12px] gap-1.5 font-[700] border-2 border-[#0A0A0A]" disabled={!videoUrl && !previewBlobUrl} onClick={handleTestPlay}><IconPlay size={14} />{selectedClip ? 'Tes Preview' : 'Play Video'}</Button>
-              <Button variant="outline" className="h-11 text-[12px] gap-1.5 font-[600] border-2" disabled={!clips.length || saving || !videoUrl} onClick={handleSaveProject}><IconSave />{saving ? 'Menyimpan...' : 'Simpan Online'}</Button>
+              <Button className="h-11 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] text-[12px] gap-1.5 font-[700] border-2 border-[#0A0A0A]" disabled={!videoUrl && !previewBlobUrl && !youtubeInfo} onClick={handleTestPlay}><IconPlay size={14} />{selectedClip ? 'Tes Preview' : 'Play Video'}</Button>
+              <Button variant="outline" className="h-11 text-[12px] gap-1.5 font-[600] border-2" disabled={!clips.length || saving} onClick={handleSaveProject}><IconSave />{saving ? 'Menyimpan...' : 'Simpan Online'}</Button>
               <Button className="h-11 bg-[#FFD60A] text-black hover:bg-[#FFC700] text-[12px] font-[800] gap-1.5 border-2 border-[#FFD60A]" disabled={!selectedClip} onClick={doExport}><IconDownload />Export Online</Button>
             </div>
             <div className="mt-2 text-[10px] text-[#6B6B6B] text-center leading-[1.4]">
