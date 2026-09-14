@@ -17,6 +17,15 @@ type Plan = {
   popular: boolean
 }
 
+function getAuthHeaders() {
+  const headers: any = { 'Content-Type': 'application/json' }
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('admin_token')
+    if (token) headers['Authorization'] = `Bearer ${token}`
+  }
+  return headers
+}
+
 export default function SubscriptionPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,6 +33,8 @@ export default function SubscriptionPage() {
   const [checkingOut, setCheckingOut] = useState<string | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<'qris' | 'dana'>('qris')
   const [showQris, setShowQris] = useState<any>(null)
+  const [user, setUser] = useState<any>(null)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
     fetch(`${AUTH_URL}/subscription/plans`)
@@ -34,28 +45,50 @@ export default function SubscriptionPage() {
       })
       .catch(() => setLoading(false))
 
-    fetch(`${AUTH_URL}/auth/me`, { credentials: 'include' })
+    // Cek auth — pakai credentials include + Authorization header fallback
+    fetch(`${AUTH_URL}/auth/me`, { credentials: 'include', headers: getAuthHeaders() })
       .then(r => r.json())
       .then(data => {
-        if (data.user?.subscription) setCurrentPlan(data.user.subscription.plan)
+        if (data.user) {
+          setUser(data.user)
+          if (data.user.subscription) setCurrentPlan(data.user.subscription.plan)
+        }
+        setAuthChecked(true)
       })
-      .catch(() => {})
+      .catch(() => setAuthChecked(true))
   }, [])
 
   const handleCheckout = async (planId: string) => {
     if (planId === 'free') return
     
+    // Jika belum login, redirect ke login — jangan tampilkan Unauthorized popup
+    if (!user && authChecked) {
+      const goLogin = confirm('Login dulu untuk bayar paket. Mau login sekarang?')
+      if (goLogin) {
+        window.location.href = `/id/auth/login?next=/subscription&plan=${planId}`
+      }
+      return
+    }
+    
     setCheckingOut(planId)
     try {
       const res = await fetch(`${AUTH_URL}/payment/create-qris`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         credentials: 'include',
         body: JSON.stringify({ plan_id: planId, payment_method: paymentMethod })
       })
       const data = await res.json()
       
-      if (!res.ok) throw new Error(data.error)
+      if (!res.ok) {
+        // Handle Unauthorized dengan jelas — bukan popup promo
+        if (res.status === 401 || data.error?.includes('Unauthorized')) {
+          alert('Sesi habis atau belum login. Silakan login dulu untuk bayar.')
+          window.location.href = `/id/auth/login?next=/subscription&plan=${planId}`
+          return
+        }
+        throw new Error(data.error || 'Gagal buat pembayaran')
+      }
       
       if (data.plan === 'free') {
         setCurrentPlan('free')
@@ -66,7 +99,7 @@ export default function SubscriptionPage() {
       
       const poll = setInterval(async () => {
         try {
-          const statusRes = await fetch(`${AUTH_URL}/payment/status/${data.payment_id}`, { credentials: 'include' })
+          const statusRes = await fetch(`${AUTH_URL}/payment/status/${data.payment_id}`, { credentials: 'include', headers: getAuthHeaders() })
           const statusData = await statusRes.json()
           if (statusData.payment?.status === 'paid') {
             clearInterval(poll)
@@ -79,7 +112,13 @@ export default function SubscriptionPage() {
 
       setTimeout(() => clearInterval(poll), 1000 * 60 * 10)
     } catch (e: any) {
-      alert(e.message || 'Checkout gagal')
+      // Jangan tampilkan Unauthorized mentah — kasih pesan yang jelas
+      if (e.message?.includes('Unauthorized')) {
+        alert('Belum login. Silakan login dulu untuk melanjutkan pembayaran.')
+        window.location.href = `/id/auth/login?next=/subscription`
+      } else {
+        alert(e.message || 'Checkout gagal, coba lagi')
+      }
     }
     setCheckingOut(null)
   }
@@ -91,7 +130,7 @@ export default function SubscriptionPage() {
           <Link href="/id" className="flex items-center gap-2">
             <img src="/logo.png" alt="logo" className="h-7 w-7 rounded-[8px] bg-[#0A0A0A] object-cover" />
             <span className="text-[13px] font-[700] tracking-[-0.02em]">autoclipp</span>
-            <span className="ml-2 text-[10px] font-[600] tracking-[0.06em] uppercase text-[#6B6B6B]">Pricing</span>
+            <span className="ml-2 text-[10px] font-[600] tracking-[0.06em] uppercase text-[#6B6B6B]">Harga</span>
           </Link>
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-1 rounded-full bg-[#F5F5F0] p-1 border border-[#E8E8E3] mr-2">
@@ -107,7 +146,17 @@ export default function SubscriptionPage() {
         <div className="text-center max-w-[640px] mx-auto">
           <div className="inline-flex items-center gap-2 rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[11px] font-[600] tracking-[0.02em]">MULAI DARI RP 5.000 / BULAN • TANPA WATERMARK</div>
           <h1 className="mt-4 text-[32px] lg:text-[44px] font-[750] tracking-[-0.04em] leading-[0.95]">Pilih paket yang cocok</h1>
-          <p className="mt-4 text-[14px] leading-[1.6] text-[#6B6B6B]">Mulai gratis selamanya. Upgrade kapan saja dari Rp 5 ribu sampai Rp 100 ribu. Bayar QRIS/DANA, langsung aktif. Batalkan kapan saja.</p>
+          <p className="mt-4 text-[14px] leading-[1.6] text-[#6B6B6B]">Mulai gratis selamanya. Upgrade kapan saja dari Rp 5 ribu sampai Rp 100 ribu. Bayar QRIS/DANA, langsung aktif.</p>
+          {!user && authChecked && (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-4 py-2 text-[11px] font-[600] text-amber-800">
+              ⚠️ Belum login — <Link href="/id/auth/login?next=/subscription" className="underline">Login dulu</Link> untuk bayar paket
+            </div>
+          )}
+          {user && (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-green-50 border border-green-200 px-4 py-2 text-[11px] font-[600] text-green-800">
+              ✓ Login sebagai {user.email} • Paket: {currentPlan}
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -119,7 +168,7 @@ export default function SubscriptionPage() {
             {plans.map(plan => (
               <Card key={plan.id} className={`p-6 relative overflow-hidden ${plan.popular ? 'ring-2 ring-[#0A0A0A] shadow-[0_8px_32px_rgba(0,0,0,0.12)]' : ''} ${currentPlan === plan.id ? 'border-[#0A0A0A] bg-[#F5F5F0]' : ''}`}>
                 {plan.popular && <div className="absolute top-0 right-0 bg-[#0A0A0A] text-white text-[10px] font-[700] tracking-[0.06em] uppercase px-3 py-1 rounded-bl-[12px]">Popular</div>}
-                {currentPlan === plan.id && <div className="absolute top-0 left-0 bg-[#FFD60A] text-black text-[10px] font-[700] tracking-[0.06em] uppercase px-3 py-1 rounded-br-[12px]">Current</div>}
+                {currentPlan === plan.id && <div className="absolute top-0 left-0 bg-[#FFD60A] text-black text-[10px] font-[700] tracking-[0.06em] uppercase px-3 py-1 rounded-br-[12px]">Aktif</div>}
                 <div>
                   <h3 className="text-[16px] font-[700] tracking-[-0.02em]">{plan.name}</h3>
                   <div className="mt-1 flex items-baseline gap-1">
@@ -137,11 +186,11 @@ export default function SubscriptionPage() {
                 </div>
                 <div className="mt-8">
                   {currentPlan === plan.id ? (
-                    <Button disabled className="w-full h-10 bg-[#F5F5F0] text-[#6B6B6B] border border-[#E8E8E3]">Paket Saat Ini</Button>
+                    <Button disabled className="w-full h-10 bg-[#F5F5F0] text-[#6B6B6B] border border-[#E8E8E3]">Paket Aktif</Button>
                   ) : plan.price === 0 ? (
                     <Link href="/id/editor" className="block"><Button variant="outline" className="w-full h-10">Mulai Gratis</Button></Link>
                   ) : (
-                    <Button onClick={() => handleCheckout(plan.id)} disabled={checkingOut === plan.id} className="w-full h-10">
+                    <Button onClick={() => handleCheckout(plan.id)} disabled={checkingOut === plan.id} className="w-full h-10 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A]">
                       {checkingOut === plan.id ? 'Memproses...' : `Bayar ${plan.price_idr} via ${paymentMethod.toUpperCase()}`}
                     </Button>
                   )}
@@ -153,7 +202,7 @@ export default function SubscriptionPage() {
 
         <div className="mt-12 rounded-[16px] border border-[#E8E8E3] bg-white p-6 text-center">
           <h3 className="text-[13px] font-[700]">Metode Pembayaran</h3>
-          <p className="mt-2 text-[12px] text-[#6B6B6B] max-w-[600px] mx-auto">Dukung QRIS, DANA, GoPay, OVO, ShopeePay, Virtual Account BCA/Mandiri/BNI/BRI, Alfamart, Indomaret. Semua pembayaran diverifikasi real, akses aktif otomatis setelah bayar.</p>
+          <p className="mt-2 text-[12px] text-[#6B6B6B] max-w-[600px] mx-auto">Dukung QRIS, DANA, GoPay, OVO, ShopeePay, Virtual Account. Pembayaran diverifikasi otomatis, akses aktif setelah bayar.</p>
           <div className="mt-4 flex justify-center gap-2 flex-wrap">
             {['QRIS', 'DANA', 'GoPay', 'OVO', 'ShopeePay', 'BCA VA', 'Mandiri VA'].map(m => (
               <span key={m} className="text-[10px] px-2.5 py-1 rounded-full bg-[#F5F5F0] border border-[#E8E8E3] font-[500]">{m}</span>
@@ -168,13 +217,13 @@ export default function SubscriptionPage() {
             <div className="text-[14px] font-[700]">Scan untuk bayar — {showQris.plan_id}</div>
             <div className="text-[11px] text-[#6B6B6B] mt-1">Order: {showQris.order_id} • {showQris.amount ? `Rp ${showQris.amount.toLocaleString('id-ID')}` : ''}</div>
             
-            <div className="mt-4 mx-auto w-[240px] h-[240px] rounded-[16px] border border-[#E8E8E3] bg-white p-3 flex items-center justify-center">
+            <div className="mt-4 mx-auto w-[240px] h-[240px] rounded-[16px] bg-white p-3 flex items-center justify-center">
               <img src={showQris.qris_url} alt="QRIS" className="w-full h-full object-contain" />
             </div>
 
-            <div className="mt-4 text-[11px] leading-[1.5] text-[#6B6B6B] text-left bg-[#F5F5F0] border border-[#E8E8E3] rounded-[12px] p-3">
+            <div className="mt-4 text-[11px] leading-[1.5] text-[#6B6B6B] text-left bg-[#F5F5F0] rounded-[12px] p-3">
               <div className="font-[600] text-[#0A0A0A]">Cara bayar:</div>
-              <div className="mt-1">Buka aplikasi DANA/GoPay/OVO, scan QR di atas, bayar sesuai nominal. Akses otomatis aktif setelah pembayaran berhasil.</div>
+              <div className="mt-1">Buka DANA/GoPay/OVO, scan QR di atas, bayar sesuai nominal. Akses otomatis aktif setelah berhasil.</div>
             </div>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-[#6B6B6B]">
@@ -184,8 +233,8 @@ export default function SubscriptionPage() {
 
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Button variant="outline" className="h-9 text-[12px]" onClick={() => setShowQris(null)}>Tutup</Button>
-              <Button className="h-9 text-[12px]" onClick={() => {
-                fetch(`${AUTH_URL}/payment/status/${showQris.payment_id}`, { credentials: 'include' })
+              <Button className="h-9 text-[12px] bg-[#0A0A0A] text-white" onClick={() => {
+                fetch(`${AUTH_URL}/payment/status/${showQris.payment_id}`, { credentials: 'include', headers: getAuthHeaders() })
                   .then(r => r.json())
                   .then(data => {
                     if (data.payment?.status === 'paid') {
