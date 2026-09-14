@@ -9,21 +9,43 @@ import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
 
 type Word = { word: string; start: number; end: number }
-type Clip = {
-  id: number
-  start: number
-  end: number
-  duration: number
-  hook: string
-  score: number
-  label: string
-  words: Word[]
-}
+type Clip = { id: number; start: number; end: number; duration: number; hook: string; score: number; label: string; words: Word[] }
 
-// 12 STYLES - visual, not black
+// Icons - no emoji, use SVG
+const IconUpload = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+)
+const IconPlay = ({ size=16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+)
+const IconPause = ({ size=16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+)
+const IconSave = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+)
+const IconDownload = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+)
+const IconRefresh = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+)
+const IconCheck = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+)
+const IconPalette = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/><circle cx="6.5" cy="12.5" r="0.5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+)
+const IconSpark = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"/></svg>
+)
+const IconFilm = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+)
+
 const STYLES: any = {
   hormozi: { name: 'Hormozi', desc: 'Yellow highlight viral', font: 'Anton', text: '#FFFFFF', highlight: '#FFD60A', stroke: '#000000', sw: 8, bg: 'transparent', upper: true, previewText: 'RAHASIA', previewSub: 'KAYA', usage: '67%', bgPreview: '#0A0A0A' },
-  mrbeast: { name: 'MrBeast', desc: 'Big bold energetic', font: 'Bebas Neue', text: '#FFFFFF', highlight: '#FF3B30', stroke: '#000000', sw: 10, bg: 'transparent', upper: true, previewText: 'INSANE!', previewSub: 'VIRAL', usage: '23%', bgPreview: '#1A1A1A' },
+  mrbeast: { name: 'MrBeast', desc: 'Big bold energetic', font: 'Bebas Neue', text: '#FFFFFF', highlight: '#FF3B30', stroke: '#000000', sw: 10, bg: 'transparent', upper: true, previewText: 'INSANE', previewSub: 'VIRAL', usage: '23%', bgPreview: '#1A1A1A' },
   karaoke: { name: 'Karaoke', desc: 'Box highlight word', font: 'Montserrat', text: '#0A0A0A', highlight: '#FFFFFF', stroke: 'transparent', sw: 0, bg: '#FFD60A', upper: false, previewText: 'Karaoke', previewSub: 'Box', usage: '18%', bgPreview: '#FFD60A' },
   minimal: { name: 'Minimal', desc: 'Clean professional', font: 'Inter', text: '#0A0A0A', highlight: '#0A0A0A', stroke: '#FFFFFF', sw: 0, bg: 'rgba(255,255,255,0.9)', upper: false, previewText: 'Clean', previewSub: 'Pro', usage: '12%', bgPreview: '#F5F5F0' },
   tiktok: { name: 'TikTok', desc: '2 words center viral', font: 'Oswald', text: '#FFFFFF', highlight: '#FF2D55', stroke: '#000000', sw: 6, bg: 'transparent', upper: true, previewText: 'VIRAL', previewSub: 'NOW', usage: '34%', bgPreview: '#000000' },
@@ -37,16 +59,16 @@ const STYLES: any = {
 }
 
 const ANIMATIONS: any = {
-  pop: { name: 'Pop', desc: 'Scale pop', icon: 'POP', usage: '45%' },
-  bounce: { name: 'Bounce', desc: 'Bouncy', icon: 'BOUNCE', usage: '22%' },
-  slide: { name: 'Slide', desc: 'Slide up', icon: 'SLIDE', usage: '15%' },
-  fade: { name: 'Fade', desc: 'Fade in', icon: 'FADE', usage: '8%' },
-  karaoke: { name: 'Karaoke', desc: 'Box word', icon: 'BOX', usage: '18%' },
-  wave: { name: 'Wave', desc: 'Wave motion', icon: 'WAVE', usage: '11%' },
-  typewriter: { name: 'Typewriter', desc: 'Ketik per huruf', icon: 'TYPE', usage: '14%' },
-  glitch: { name: 'Glitch', desc: 'Glitch effect', icon: 'GLITCH', usage: '7%' },
-  zoom: { name: 'Zoom', desc: 'Zoom in', icon: 'ZOOM', usage: '12%' },
-  rotate: { name: 'Rotate', desc: 'Rotate 3D', icon: 'ROTATE', usage: '6%' },
+  pop: { name: 'Pop', desc: 'Scale pop', usage: '45%' },
+  bounce: { name: 'Bounce', desc: 'Bouncy', usage: '22%' },
+  slide: { name: 'Slide', desc: 'Slide up', usage: '15%' },
+  fade: { name: 'Fade', desc: 'Fade in', usage: '8%' },
+  karaoke: { name: 'Karaoke', desc: 'Box word', usage: '18%' },
+  wave: { name: 'Wave', desc: 'Wave motion', usage: '11%' },
+  typewriter: { name: 'Typewriter', desc: 'Ketik per huruf', usage: '14%' },
+  glitch: { name: 'Glitch', desc: 'Glitch effect', usage: '7%' },
+  zoom: { name: 'Zoom', desc: 'Zoom in', usage: '12%' },
+  rotate: { name: 'Rotate', desc: 'Rotate 3D', usage: '6%' },
 }
 
 const FONTS = ['Anton', 'Bebas Neue', 'Montserrat', 'Inter', 'Oswald', 'Georgia', 'Poppins', 'Space Grotesk']
@@ -91,7 +113,6 @@ export default function EditorPage() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [clipStartEdit, setClipStartEdit] = useState(0)
   const [clipEndEdit, setClipEndEdit] = useState(0)
-  // Custom colors
   const [customTextColor, setCustomTextColor] = useState('')
   const [customHighlightColor, setCustomHighlightColor] = useState('')
   const [customStrokeColor, setCustomStrokeColor] = useState('')
@@ -113,7 +134,6 @@ export default function EditorPage() {
     font: customFont || baseStyle.font,
   }
 
-  // Load FFmpeg
   useEffect(() => {
     const loadFFmpeg = async () => {
       try {
@@ -127,7 +147,7 @@ export default function EditorPage() {
         setFfmpeg(ff)
         setFfmpegLoaded(true)
       } catch (e) {
-        console.log('FFmpeg fallback', e)
+        console.log('Fallback mode', e)
         setFfmpegLoaded(false)
       }
     }
@@ -220,9 +240,7 @@ export default function EditorPage() {
         setYoutubeUrl(text)
         if (text.includes('youtube.com') || text.includes('youtu.be')) handleYoutube(text)
       }
-    } catch {
-      document.querySelector<HTMLInputElement>('input[placeholder=\"Paste YouTube URL\"]')?.focus()
-    }
+    } catch {}
   }
 
   const handleTranscribe = async () => {
@@ -230,7 +248,7 @@ export default function EditorPage() {
       if (!selectedClip && clips[0]) { setSelectedClip(clips[0]); setHook(clips[0].hook) }
       return
     }
-    if (!videoUrl && !youtubeInfo) return
+    if (!videoUrl && !youtubeInfo) { alert('Upload video atau tempel link YouTube dulu di Langkah 1'); return }
     setIsProcessing(true)
     try {
       const res = await fetch('/api/transcribe', {
@@ -254,7 +272,7 @@ export default function EditorPage() {
   }
 
   const handleAiHook = async () => {
-    if (!selectedClip) return
+    if (!selectedClip) { alert('Pilih clip dulu di Langkah 2'); return }
     setAiLoading(true)
     try {
       const transcript = selectedClip.words.map(w=>w.word).join(' ')
@@ -292,12 +310,12 @@ export default function EditorPage() {
   }
 
   const handleSaveProject = async () => {
-    if (!clips.length) { alert('Generate clips dulu'); return }
+    if (!clips.length) { alert('Generate clips dulu di Langkah 2 — klik tombol Buat Clip Viral'); return }
     setSaving(true)
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { alert('Login dulu untuk save'); setSaving(false); return }
+      if (!user) { alert('Login dulu untuk simpan project'); setSaving(false); return }
       const { data: project, error } = await supabase
         .from('projects')
         .insert({ user_id: user.id, title: projectTitle, duration, status: 'completed' })
@@ -319,16 +337,15 @@ export default function EditorPage() {
         }))
         const { error: clipError } = await supabase.from('clips').insert(clipsToInsert)
         if (clipError) throw clipError
-        alert('✅ Project berhasil disimpan!')
+        alert('Project berhasil disimpan ke daftar project')
       }
     } catch (e: any) {
       console.error(e)
-      alert('Gagal save: ' + e.message)
+      alert('Gagal simpan: ' + e.message)
     }
     setSaving(false)
   }
 
-  // Canvas rendering
   useEffect(() => {
     const canvas = canvasRef.current
     const video = videoRef.current
@@ -340,13 +357,11 @@ export default function EditorPage() {
       if (!video || video.paused) { animationId = requestAnimationFrame(render); return }
       const vw = canvas.width, vh = canvas.height
       ctx.clearRect(0,0,vw,vh)
-      // Background blur
       try {
         ctx.filter = 'blur(24px) brightness(0.55)'
         ctx.drawImage(video, 0,0,vw,vh)
         ctx.filter = 'none'
       } catch { ctx.drawImage(video, 0,0,vw,vh) }
-      
       const va = video.videoWidth / video.videoHeight
       const ca = vw / vh
       let sx,sy,sw,sh
@@ -360,7 +375,6 @@ export default function EditorPage() {
       ctx.clip()
       ctx.drawImage(video, sx,sy,sw,sh, tx,ty,tw,th)
       ctx.restore()
-
       const ct = currentTime - selectedClip.start
       const at = selectedClip.start + ct
       const visible = selectedClip.words.filter(w => at >= w.start-0.1 && at <= w.end+0.7)
@@ -375,8 +389,7 @@ export default function EditorPage() {
         if (pos==='bottom') y = vh*0.82
         ctx.textAlign='center'
         ctx.textBaseline='middle'
-        const ff = style.font
-        ctx.font = `900 ${fontSize}px \"${ff}\", sans-serif`
+        ctx.font = `900 ${fontSize}px "${style.font}", sans-serif`
         const mw = ctx.measureText(text).width
         const tht = fontSize*1.15
         let scale=1, oy=0, op=1, rot=0, skew=0
@@ -387,7 +400,6 @@ export default function EditorPage() {
           else if (anim==='slide') { oy=(1-p)*20; op=p }
           else if (anim==='fade') { op = p; scale = 0.85 + p*0.15 }
           else if (anim==='wave') { oy = Math.sin(p*Math.PI*2)*8; rot = Math.sin(p*Math.PI)*0.08 }
-          else if (anim==='typewriter') { op = 1; /* handled per char */ }
           else if (anim==='glitch') { if (Math.random()>0.85) { oy = (Math.random()-0.5)*10; skew = (Math.random()-0.5)*0.2 } }
           else if (anim==='zoom') { scale = 0.8 + p*0.4 }
           else if (anim==='rotate') { rot = p*0.3; scale = 0.9 + Math.sin(p*Math.PI)*0.1 }
@@ -406,11 +418,7 @@ export default function EditorPage() {
           if (ctx.roundRect) ctx.roundRect(-mw/2-20, -tht/2-10, mw+40, tht+20, 12); else ctx.rect(-mw/2-20, -tht/2-10, mw+40, tht+20)
           ctx.fill()
         }
-        // Glow effect
-        if (styleKey==='glow') {
-          ctx.shadowColor = style.highlight
-          ctx.shadowBlur = 20
-        }
+        if (styleKey==='glow') { ctx.shadowColor = style.highlight; ctx.shadowBlur = 20 }
         if (style.sw>0 && style.stroke !== 'transparent') {
           ctx.strokeStyle = style.stroke
           ctx.lineWidth = style.sw
@@ -486,7 +494,7 @@ export default function EditorPage() {
     if (!selectedClip) return
     const newStart = Math.max(0, clipStartEdit)
     const newEnd = Math.min(duration || 9999, clipEndEdit)
-    if (newEnd <= newStart) { alert('End harus > Start'); return }
+    if (newEnd <= newStart) { alert('Waktu selesai harus lebih besar dari mulai'); return }
     const updated = { ...selectedClip, start: newStart, end: newEnd, duration: newEnd - newStart }
     setSelectedClip(updated)
     setClips(prev => prev.map(c => c.id === updated.id ? updated : c))
@@ -494,14 +502,14 @@ export default function EditorPage() {
   }
 
   const handleTestPlay = () => {
-    if (!selectedClip || !videoRef.current) { alert('Generate clips dulu'); return }
+    if (!selectedClip || !videoRef.current) { alert('Generate clips dulu di Langkah 2 — klik tombol Buat Clip Viral'); return }
     videoRef.current.currentTime = clipStartEdit
     videoRef.current.play()
     setIsPlaying(true)
   }
 
   const doExport = async () => {
-    if (!selectedClip) { alert('Pilih clip dulu'); return }
+    if (!selectedClip) { alert('Pilih clip dulu di Langkah 3'); return }
     setShowExport(true)
     setProgress(0)
     setExportStatus('Menyiapkan...')
@@ -522,7 +530,7 @@ export default function EditorPage() {
         a.click()
         URL.revokeObjectURL(url)
         setProgress(100)
-        setExportStatus('Berhasil diunduh!')
+        setExportStatus('Berhasil diunduh')
       } else {
         setExportStatus('Merekam preview dengan subtitle...')
         const canvas = canvasRef.current
@@ -592,7 +600,7 @@ export default function EditorPage() {
         video.pause()
         await exportPromise
         setProgress(100)
-        setExportStatus('Berhasil!')
+        setExportStatus('Berhasil')
       }
     } catch (e: any) {
       console.error('Export failed', e)
@@ -623,22 +631,22 @@ export default function EditorPage() {
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-2 text-[10px]">
               <span className={`px-2 py-1 rounded-full border ${ffmpegLoaded ? 'bg-green-50 border-green-200 text-green-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
-                {ffmpegLoaded ? '✓ Ready' : '○ Loading...'}
+                {ffmpegLoaded ? 'Ready' : 'Loading...'}
               </span>
             </div>
-            <Button variant="outline" size="sm" className="h-8" onClick={handleSaveProject} disabled={saving || !clips.length}>{saving ? 'Menyimpan...' : 'Simpan'}</Button>
-            <Button size="sm" className="h-8 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A]" onClick={doExport} disabled={!selectedClip}>Export</Button>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={handleSaveProject} disabled={saving || !clips.length}><IconSave />{saving ? 'Menyimpan...' : 'Simpan'}</Button>
+            <Button size="sm" className="h-8 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] gap-1.5" onClick={doExport} disabled={!selectedClip}><IconDownload />Export</Button>
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-[1600px] px-4 lg:px-6 py-4 lg:py-6 grid grid-cols-12 gap-4 lg:gap-5">
-        {/* LEFT */}
+        {/* LEFT - Source */}
         <div className="col-span-12 lg:col-span-3 space-y-4">
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Source Video</h2>
-              <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">LANGKAH 1</span>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Langkah 1 - Source Video</h2>
+              <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">WAJIB</span>
             </div>
             <div
               onDrop={e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f&&f.type.startsWith('video/')) handleFile(f)}}
@@ -646,14 +654,14 @@ export default function EditorPage() {
               onClick={()=>fileRef.current?.click()}
               className="rounded-[16px] border border-dashed border-[#E8E8E3] bg-[#FCFCF9] p-6 text-center hover:border-[#0A0A0A] hover:bg-white cursor-pointer transition"
             >
-              <div className="mx-auto h-10 w-10 rounded-[12px] bg-[#0A0A0A] text-white flex items-center justify-center text-[16px] font-[700]">↑</div>
-              <div className="mt-3 text-[13px] font-[600] tracking-[-0.01em]">Drop video di sini</div>
+              <div className="mx-auto h-10 w-10 rounded-[12px] bg-[#0A0A0A] text-white flex items-center justify-center"><IconUpload /></div>
+              <div className="mt-3 text-[13px] font-[600] tracking-[-0.01em]">Drop video di sini atau klik</div>
               <div className="text-[11px] text-[#6B6B6B] mt-1">MP4, MOV hingga 2GB</div>
               <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; if(f) handleFile(f)}} />
             </div>
             
             <div className="mt-4 space-y-2">
-              <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Tempel Link YouTube — Auto Deteksi</label>
+              <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Atau Tempel Link YouTube</label>
               <div className="flex gap-2">
                 <input 
                   value={youtubeUrl} 
@@ -676,34 +684,59 @@ export default function EditorPage() {
                       <div className="text-[11px] font-[600] leading-[1.3] line-clamp-2">{youtubeInfo.title}</div>
                       <div className="text-[10px] text-[#6B6B6B] mt-1">{youtubeInfo.author}</div>
                       <div className="mt-1 flex gap-1">
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-[600]">✓ Terdeteksi</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-[600] flex items-center gap-1"><IconCheck />Terdeteksi</span>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
             </div>
+          </Card>
 
-            <Button className="w-full mt-4 h-10 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A]" disabled={!isGenerateEnabled} onClick={handleTranscribe}>
-              {isProcessing ? 'Memproses...' : isYoutubeLoading ? 'Mengambil YouTube...' : youtubeInfo ? `Buat Clip • ${youtubeInfo.title.slice(0,20)}` : 'Buat Clip Viral'}
+          <Card className="p-4 border-2 border-[#0A0A0A] bg-[#0A0A0A] text-white">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase flex items-center gap-2"><IconSpark />Langkah 2 - Generate Clips</h2>
+              <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-white text-black">WAJIB KLIK</span>
+            </div>
+            <div className="text-[11px] text-white/60 leading-[1.5] mb-4">
+              Setelah upload video atau tempel YouTube di Langkah 1, klik tombol besar di bawah untuk buat 5 clip viral otomatis. Tombol ini ada di sini!
+            </div>
+            <Button className="w-full h-12 bg-white text-black hover:bg-[#FFD60A] text-[13px] font-[700] gap-2" disabled={!isGenerateEnabled} onClick={handleTranscribe}>
+              <IconFilm />{isProcessing ? 'Memproses...' : isYoutubeLoading ? 'Mengambil YouTube...' : youtubeInfo ? `Buat Clip Viral` : 'Buat Clip Viral Sekarang'}
             </Button>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] text-white/50 text-center">
+              <div className="rounded-full bg-white/10 py-1">AI Deteksi</div>
+              <div className="rounded-full bg-white/10 py-1">5 Clips</div>
+              <div className="rounded-full bg-white/10 py-1">Auto Hook</div>
+            </div>
+            {!videoUrl && !youtubeInfo && (
+              <div className="mt-3 rounded-[10px] bg-amber-500/20 border border-amber-500/20 p-2.5 text-[11px] text-amber-200">
+                Upload video dulu di Langkah 1, baru tombol ini aktif
+              </div>
+            )}
+            {isGenerateEnabled && (
+              <div className="mt-3 rounded-[10px] bg-[#FFD60A] text-black p-2.5 text-[11px] font-[600] flex items-center gap-2">
+                <IconCheck />Siap! Klik untuk generate clips
+              </div>
+            )}
           </Card>
 
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Hasil Clip ({clips.length})</h2>
-              <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#0A0A0A] text-white">AI • Viral</span>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Langkah 3 - Hasil Clip ({clips.length})</h2>
+              <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#0A0A0A] text-white">AI Viral</span>
             </div>
-            <div className="space-y-2 max-h-[420px] overflow-auto pr-1">
+            <div className="space-y-2 max-h-[320px] overflow-auto pr-1">
               {clips.length===0 ? (
-                <div className="py-10 text-center">
-                  <div className="mx-auto h-10 w-10 rounded-[12px] border border-dashed border-[#E8E8E3] flex items-center justify-center text-[#9B9B9B]">—</div>
-                  <div className="mt-3 text-[12px] font-[500] text-[#6B6B6B]">Upload dan buat clip dulu</div>
+                <div className="py-8 text-center border border-dashed border-[#E8E8E3] rounded-[12px]">
+                  <div className="mx-auto h-8 w-8 rounded-[8px] bg-[#F5F5F0] flex items-center justify-center text-[#9B9B9B]"><IconFilm /></div>
+                  <div className="mt-2 text-[11px] font-[600] text-[#6B6B6B]">Belum ada clip</div>
+                  <div className="mt-1 text-[10px] text-[#9B9B9B]">Klik "Buat Clip Viral" di Langkah 2</div>
                 </div>
               ) : clips.map(c=>(
                 <button key={c.id} onClick={()=>{ setSelectedClip(c); setHook(c.hook); if(videoRef.current){ videoRef.current.currentTime=c.start; videoRef.current.play(); setIsPlaying(true) } }} className={`w-full text-left rounded-[14px] border p-3 transition ${selectedClip?.id===c.id ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
                   <div className="flex items-center justify-between">
-                    <span className={`text-[10px] font-[700] tracking-[0.05em] px-2 py-0.5 rounded-full ${selectedClip?.id===c.id ? 'bg-white text-black' : 'bg-[#FFD60A] text-black'}`}>{c.label} {c.score}</span>
+                    <span className={`text-[10px] font-[700] tracking-[0.05em] px-2 py-0.5 rounded-full flex items-center gap-1 ${selectedClip?.id===c.id ? 'bg-white text-black' : 'bg-[#FFD60A] text-black'}`}><IconCheck />{c.label} {c.score}</span>
                     <span className="text-[10px] font-[500] opacity-70">{Math.floor(c.duration)}s</span>
                   </div>
                   <div className="mt-2 text-[12px] font-[600] leading-[1.3] tracking-[-0.01em] line-clamp-2">{c.hook}</div>
@@ -714,44 +747,42 @@ export default function EditorPage() {
           </Card>
         </div>
 
-        {/* CENTER - Preview with PLAY BUTTON */}
+        {/* CENTER - Preview with PLAY BUTTON ICON */}
         <div className="col-span-12 lg:col-span-5 space-y-4">
           <Card className="p-3 lg:p-4">
             <div className="flex items-center justify-between mb-3 px-1">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Preview 9:16 — Tes Sebelum Export</h2>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Langkah 4 - Preview 9:16</h2>
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-[600] px-2 py-1 rounded-full bg-[#0A0A0A] text-white">1080x1920</span>
                 <button onClick={()=>setLoopPreview(!loopPreview)} className={`text-[10px] font-[600] px-2 py-1 rounded-full border ${loopPreview ? 'bg-[#FFD60A] border-[#FFD60A] text-black' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{loopPreview ? 'Loop ON' : 'Loop OFF'}</button>
               </div>
             </div>
-            <div className="relative rounded-[18px] bg-[#0A0A0A] overflow-hidden aspect-[9/16] max-h-[700px] mx-auto">
+            <div className="relative rounded-[18px] bg-[#0A0A0A] overflow-hidden aspect-[9/16] max-h-[680px] mx-auto">
               {videoUrl ? (
                 <>
                   <video ref={videoRef} src={videoUrl} className="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" crossOrigin="anonymous" playsInline onPlay={()=>setIsPlaying(true)} onPause={()=>setIsPlaying(false)} />
                   <canvas ref={canvasRef} width={1080} height={1920} className="absolute inset-0 w-full h-full" />
                   
-                  {/* PLAY BUTTON - CENTER BIG */}
                   {!isPlaying && (
                     <button onClick={()=>videoRef.current?.play()} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[1px] gap-3">
                       <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:scale-105 transition">
-                        <div className="h-0 w-0 border-l-[20px] border-l-[#0A0A0A] border-y-[12px] border-y-transparent ml-1.5" />
+                        <IconPlay size={28} />
                       </div>
-                      <span className="text-[12px] font-[600] text-white bg-black/50 px-3 py-1 rounded-full backdrop-blur-md">▶ Putar Preview</span>
+                      <span className="text-[12px] font-[600] text-white bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2"><IconPlay size={14} />Putar Preview</span>
                     </button>
                   )}
 
-                  {/* Bottom controls */}
                   <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
                     <div className="flex items-center gap-2">
-                      <button onClick={()=> isPlaying ? videoRef.current?.pause() : videoRef.current?.play()} className="h-9 w-9 rounded-full bg-white text-black flex items-center justify-center text-[12px] font-[800] hover:scale-105 transition">
-                        {isPlaying ? '❚❚' : '▶'}
+                      <button onClick={()=> isPlaying ? videoRef.current?.pause() : videoRef.current?.play()} className="h-9 w-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition">
+                        {isPlaying ? <IconPause size={14} /> : <IconPlay size={14} />}
                       </button>
-                      <Button size="sm" variant="secondary" className="h-8 text-[10px] bg-white/20 text-white border-white/20 hover:bg-white hover:text-black backdrop-blur-md" onClick={handleTestPlay}>↻ Tes Ulang</Button>
+                      <Button size="sm" variant="secondary" className="h-8 text-[10px] bg-white/20 text-white border-white/20 hover:bg-white hover:text-black backdrop-blur-md gap-1" onClick={handleTestPlay}><IconRefresh />Tes Ulang</Button>
                       <div className="flex-1">
                         <input type="range" min={clipStartEdit} max={clipEndEdit} step={0.1} value={currentTime} onChange={e=>{ const t=parseFloat(e.target.value); setCurrentTime(t); if(videoRef.current) videoRef.current.currentTime=t }} className="w-full accent-[#FFD60A] h-1.5" />
                         <div className="mt-1.5 flex justify-between text-[10px] font-mono text-white/80">
                           <span>{currentTime.toFixed(1)}s</span>
-                          <span className="font-[700] text-[#FFD60A]">{(clipEndEdit-clipStartEdit).toFixed(1)}s clip • {style.name} + {ANIMATIONS[anim]?.name}</span>
+                          <span className="font-[700] text-[#FFD60A]">{(clipEndEdit-clipStartEdit).toFixed(1)}s</span>
                           <span>{clipEndEdit.toFixed(1)}s</span>
                         </div>
                       </div>
@@ -764,8 +795,8 @@ export default function EditorPage() {
                     </div>
                   </div>
                   <div className="absolute top-3 left-3 right-3 flex justify-between">
-                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10 font-[600]">{style.name} • {ANIMATIONS[anim]?.name} • {fontSize}px</span>
-                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-[#FFD60A] text-black font-[700]">PREVIEW ASLI</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10 font-[600]">{style.name} - {ANIMATIONS[anim]?.name}</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-[#FFD60A] text-black font-[700]">PREVIEW</span>
                   </div>
                 </>
               ) : youtubeInfo ? (
@@ -775,28 +806,27 @@ export default function EditorPage() {
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="rounded-[12px] bg-white p-3">
                       <div className="text-[12px] font-[700] line-clamp-2">{youtubeInfo.title}</div>
-                      <div className="text-[10px] text-[#6B6B6B] mt-1">Preview YouTube • {youtubeInfo.author}</div>
-                      <Button size="sm" className="mt-3 w-full h-8 text-[11px]" onClick={handleTranscribe}>Buat Clip Sekarang</Button>
+                      <div className="text-[10px] text-[#6B6B6B] mt-1">Preview YouTube</div>
+                      <Button size="sm" className="mt-3 w-full h-8 text-[11px] bg-[#0A0A0A] text-white gap-1.5" onClick={handleTranscribe}><IconSpark />Buat Clip Sekarang</Button>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                  <div className="h-16 w-16 rounded-[16px] border border-dashed border-white/20 flex items-center justify-center text-white/30 text-[24px]">▶</div>
+                  <div className="h-16 w-16 rounded-[16px] border border-dashed border-white/20 flex items-center justify-center text-white/30"><IconPlay size={24} /></div>
                   <div className="mt-4 text-[13px] font-[600] text-white/60">Belum ada video</div>
-                  <div className="mt-1 text-[11px] text-white/30 max-w-[220px] leading-[1.4]">Upload MP4 atau tempel link YouTube untuk preview dengan tombol play</div>
+                  <div className="mt-1 text-[11px] text-white/30 max-w-[220px] leading-[1.4]">Upload di Langkah 1 lalu Generate di Langkah 2</div>
                 </div>
               )}
             </div>
             
-            {/* Duration Edit */}
             {selectedClip && (
               <div className="mt-3 p-3 rounded-[12px] bg-[#F5F5F0] border border-[#E8E8E3]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-[700] tracking-[0.06em] uppercase">Atur Durasi — Tes Sebelum Simpan</span>
+                  <span className="text-[11px] font-[700] tracking-[0.06em] uppercase">Atur Durasi - Tes Sebelum Simpan</span>
                   <div className="flex gap-1.5">
-                    <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={handleTestPlay}>▶ Tes Play</Button>
-                    <Button size="sm" variant="outline" className="h-6 text-[10px] bg-[#0A0A0A] text-white" onClick={applyDurationEdit}>Terapkan</Button>
+                    <Button size="sm" variant="outline" className="h-6 text-[10px] gap-1" onClick={handleTestPlay}><IconPlay size={10} />Tes Play</Button>
+                    <Button size="sm" variant="outline" className="h-6 text-[10px] bg-[#0A0A0A] text-white gap-1" onClick={applyDurationEdit}><IconCheck />Terapkan</Button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -814,29 +844,29 @@ export default function EditorPage() {
                   <input type="range" min={0} max={duration||100} step={0.1} value={clipEndEdit} onChange={e=>setClipEndEdit(parseFloat(e.target.value))} className="w-full accent-[#FFD60A] h-1.5 mt-1" />
                   <div className="mt-1 flex justify-between text-[10px] font-mono text-[#6B6B6B]">
                     <span>0s</span>
-                    <span className="font-[700] text-[#0A0A0A]">{(clipEndEdit-clipStartEdit).toFixed(1)}s durasi • Tes dulu baru export</span>
-                    <span>{(duration||0).toFixed(1)}s total</span>
+                    <span className="font-[700] text-[#0A0A0A]">{(clipEndEdit-clipStartEdit).toFixed(1)}s durasi</span>
+                    <span>{(duration||0).toFixed(1)}s</span>
                   </div>
                 </div>
               </div>
             )}
 
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <Button className="h-10 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] text-[12px]" disabled={!selectedClip} onClick={handleTestPlay}>▶ Tes Preview</Button>
-              <Button variant="outline" className="h-10 text-[12px]" disabled={!selectedClip || saving} onClick={handleSaveProject}>{saving ? 'Menyimpan...' : '💾 Simpan'}</Button>
-              <Button className="h-10 bg-[#FFD60A] text-black hover:bg-[#FFC700] text-[12px] font-[700]" disabled={!selectedClip} onClick={doExport}>⬇ Export</Button>
+              <Button className="h-10 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] text-[12px] gap-1.5" disabled={!selectedClip} onClick={handleTestPlay}><IconPlay size={14} />Tes Preview</Button>
+              <Button variant="outline" className="h-10 text-[12px] gap-1.5" disabled={!selectedClip || saving} onClick={handleSaveProject}><IconSave />{saving ? 'Menyimpan...' : 'Simpan'}</Button>
+              <Button className="h-10 bg-[#FFD60A] text-black hover:bg-[#FFC700] text-[12px] font-[700] gap-1.5" disabled={!selectedClip} onClick={doExport}><IconDownload />Export</Button>
             </div>
             <div className="mt-2 text-[10px] text-[#9B9B9B] text-center">
-              Tes preview dulu dengan play button, atur durasi, baru simpan & export. Fungsi save & export sudah aktif.
+              Langkah: 1 Upload - 2 Generate Clip Viral - 3 Pilih Clip - 4 Tes Play - 5 Simpan & Export
             </div>
           </Card>
         </div>
 
-        {/* RIGHT - 12 Styles + 10 Animations + Custom Colors */}
+        {/* RIGHT - Styles */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Gaya Subtitle — 12 Style Visual</h2>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Gaya Subtitle - 12 Style</h2>
               <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#0A0A0A] text-white">{Object.keys(STYLES).length} STYLE</span>
             </div>
             
@@ -873,7 +903,7 @@ export default function EditorPage() {
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Animasi — 10 Animasi + Preview</label>
+                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Animasi - 10 Animasi</label>
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">{Object.keys(ANIMATIONS).length} ANIM</span>
                 </div>
                 <div className="mt-2 grid grid-cols-3 gap-1.5">
@@ -887,7 +917,7 @@ export default function EditorPage() {
                         </div>
                         <div className="mt-1.5 h-[28px] rounded-[6px] bg-[#F5F5F0] border border-[#E8E8E3]/50 flex items-center justify-center overflow-hidden">
                           <div className={`text-[9px] font-[800] ${isActive ? 'text-[#0A0A0A]' : 'text-[#6B6B6B]'}`} style={{ animation: isActive ? `${k} 1s ease-in-out infinite` : '' }}>
-                            {a.icon}
+                            {a.name.toUpperCase()}
                           </div>
                         </div>
                         <div className={`mt-1 text-[8px] ${isActive ? 'text-white/60' : 'text-[#9B9B9B]'}`}>{a.desc}</div>
@@ -900,18 +930,16 @@ export default function EditorPage() {
                   @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
                   @keyframes slide{0%{transform:translateY(8px);opacity:0}50%{transform:translateY(0);opacity:1}100%{transform:translateY(-4px);opacity:0}}
                   @keyframes fade{0%,100%{opacity:0.2}50%{opacity:1}}
-                  @keyframes typewriter{0%{width:0}100%{width:100%}}
                   @keyframes glitch{0%{transform:translate(0)}20%{transform:translate(-2px,2px)}40%{transform:translate(2px,-2px)}60%{transform:translate(-1px,1px)}80%{transform:translate(1px,-1px)}100%{transform:translate(0)}}
                   @keyframes zoom{0%{transform:scale(0.8)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
                   @keyframes rotate{0%{transform:rotateY(0deg)}50%{transform:rotateY(15deg)}100%{transform:rotateY(0deg)}}
                   @keyframes wave{0%,100%{transform:translateY(0)}25%{transform:translateY(-4px)}75%{transform:translateY(4px)}}
-                  @keyframes karaoke{0%{background:#FFD60A}100%{background:transparent}}
                 `}</style>
               </div>
 
               <div className="pt-2 border-t border-[#E8E8E3]">
                 <button onClick={()=>setShowCustom(!showCustom)} className="w-full flex items-center justify-between text-[11px] font-[700] tracking-[0.06em] uppercase">
-                  <span>🎨 Custom Warna & Font</span>
+                  <span className="flex items-center gap-1.5"><IconPalette />Custom Warna dan Font</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full border ${showCustom ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{showCustom ? 'Tutup' : 'Buka'}</span>
                 </button>
                 
@@ -943,13 +971,13 @@ export default function EditorPage() {
                         <label className="text-[10px] font-[600]">Warna Background</label>
                         <div className="mt-1 flex gap-2">
                           <input type="color" value={customBgColor && customBgColor !== 'transparent' ? customBgColor : '#FFD60A'} onChange={e=>setCustomBgColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
-                          <input value={customBgColor} onChange={e=>setCustomBgColor(e.target.value)} placeholder="transparent atau #FFD60A" className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
+                          <input value={customBgColor} onChange={e=>setCustomBgColor(e.target.value)} placeholder="transparent" className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
                         </div>
                       </div>
                     </div>
                     
                     <div>
-                      <label className="text-[10px] font-[600]">Font Keluarga — {FONTS.length} Font</label>
+                      <label className="text-[10px] font-[600]">Font Keluarga - {FONTS.length} Font</label>
                       <select value={customFont} onChange={e=>setCustomFont(e.target.value)} className="mt-1 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px]">
                         <option value="">Default ({baseStyle.font})</option>
                         {FONTS.map(f=><option key={f} value={f}>{f}</option>)}
@@ -957,8 +985,8 @@ export default function EditorPage() {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1 h-7 text-[10px]" onClick={()=>{ setCustomTextColor(''); setCustomHighlightColor(''); setCustomStrokeColor(''); setCustomBgColor(''); setCustomFont('') }}>Reset Custom</Button>
-                      <Button size="sm" className="flex-1 h-7 text-[10px] bg-[#0A0A0A] text-white" onClick={()=>setShowCustom(false)}>Terapkan</Button>
+                      <Button size="sm" variant="outline" className="flex-1 h-7 text-[10px]" onClick={()=>{ setCustomTextColor(''); setCustomHighlightColor(''); setCustomStrokeColor(''); setCustomBgColor(''); setCustomFont('') }}>Reset</Button>
+                      <Button size="sm" className="flex-1 h-7 text-[10px] bg-[#0A0A0A] text-white gap-1" onClick={()=>setShowCustom(false)}><IconCheck />Terapkan</Button>
                     </div>
 
                     <div className="rounded-[8px] bg-white border border-[#E8E8E3] p-2.5">
@@ -988,7 +1016,7 @@ export default function EditorPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Kata/Baris</label>
+                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Kata per Baris</label>
                   <div className="mt-1.5 grid grid-cols-4 gap-1">
                     {[1,2,3,4].map(n=>(
                       <button key={n} onClick={()=>setWpl(n)} className={`h-8 rounded-full text-[11px] font-[600] border ${wpl===n ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>{n}</button>
@@ -1006,11 +1034,11 @@ export default function EditorPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Judul Hook — AI Viral</label>
+                <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Judul Hook - AI Viral</label>
                 <div className="mt-1.5 flex gap-2">
                   <input value={hook} onChange={e=>setHook(e.target.value)} placeholder="Tulis hook viral..." className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] focus:outline-none focus:border-[#0A0A0A]" />
-                  <Button size="sm" className="h-8 px-3 text-[10px] bg-[#0A0A0A] text-white" onClick={handleAiHook} disabled={aiLoading || !selectedClip}>
-                    {aiLoading ? '...' : 'AI'}
+                  <Button size="sm" className="h-8 px-3 text-[10px] bg-[#0A0A0A] text-white gap-1" onClick={handleAiHook} disabled={aiLoading || !selectedClip}>
+                    <IconSpark />{aiLoading ? '...' : 'AI'}
                   </Button>
                 </div>
               </div>
@@ -1018,15 +1046,14 @@ export default function EditorPage() {
           </Card>
 
           <Card className="p-4 bg-[#0A0A0A] text-white border-[#0A0A0A]">
-            <h3 className="text-[11px] font-[700] tracking-[0.06em] uppercase">Fitur Editor — Lengkap</h3>
+            <h3 className="text-[11px] font-[700] tracking-[0.06em] uppercase">Fitur Editor Lengkap</h3>
             <div className="mt-2 text-[11px] leading-[1.5] text-white/60 space-y-1">
-              <div>✓ 12 gaya subtitle + preview visual (bukan hitam)</div>
-              <div>✓ 10 animasi + demo live</div>
-              <div>✓ Custom warna: teks, highlight, stroke, bg + 8 font</div>
-              <div>✓ Tombol play besar di preview + tes sebelum export</div>
-              <div>✓ Atur durasi + speed + loop + timeline scrub</div>
-              <div>✓ Simpan project + export MP4 1080x1920 — fungsi aktif</div>
-              <div>✓ Gratis tanpa watermark • Made by XySpace</div>
+              <div className="flex items-center gap-1.5"><IconCheck />12 gaya subtitle + preview visual (bukan hitam)</div>
+              <div className="flex items-center gap-1.5"><IconCheck />10 animasi + demo live + icon</div>
+              <div className="flex items-center gap-1.5"><IconCheck />Custom warna teks, highlight, stroke, bg + 8 font</div>
+              <div className="flex items-center gap-1.5"><IconCheck />Tombol play besar + tes sebelum export + icon</div>
+              <div className="flex items-center gap-1.5"><IconCheck />Langkah jelas: 1 Upload - 2 Generate - 3 Preview - 4 Export</div>
+              <div className="flex items-center gap-1.5"><IconCheck />Simpan project + export MP4 1080x1920 - fungsi aktif</div>
             </div>
           </Card>
         </div>
@@ -1037,12 +1064,12 @@ export default function EditorPage() {
           <Card className="w-full max-w-[360px] p-6 text-center">
             <div className="mx-auto h-12 w-12 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center font-[800] animate-pulse">A</div>
             <div className="mt-4 text-[14px] font-[700]">Mengekspor clip</div>
-            <div className="text-[12px] text-[#6B6B6B] mt-1">{STYLES[styleKey]?.name} • {ANIMATIONS[anim]?.name} • {hook.slice(0,30)}...</div>
-            <div className="mt-1 text-[11px] text-[#9B9B9B]">{exportStatus} • {(clipEndEdit-clipStartEdit).toFixed(1)}s • {fontSize}px</div>
+            <div className="text-[12px] text-[#6B6B6B] mt-1">{STYLES[styleKey]?.name} - {ANIMATIONS[anim]?.name} - {hook.slice(0,30)}</div>
+            <div className="mt-1 text-[11px] text-[#9B9B9B]">{exportStatus} - {(clipEndEdit-clipStartEdit).toFixed(1)}s - {fontSize}px</div>
             <div className="mt-5 h-1.5 rounded-full bg-[#F5F5F0] overflow-hidden">
               <div className="h-full bg-[#0A0A0A] transition-all duration-300" style={{ width: `${progress}%` }} />
             </div>
-            <div className="mt-2 text-[11px] font-mono">{progress}% • Siap unduh</div>
+            <div className="mt-2 text-[11px] font-mono">{progress}% - Siap unduh</div>
           </Card>
         </div>
       )}
