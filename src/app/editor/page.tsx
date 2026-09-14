@@ -377,12 +377,12 @@ export default function EditorPage() {
     const blobUrl = URL.createObjectURL(f)
     setPreviewBlobUrl(blobUrl)
     setVideoPreviewUrl(blobUrl)
+    setVideoUrl(blobUrl) // set blob dulu biar bisa langsung generate/play, nanti diganti Cloudinary URL
     setProjectTitle(f.name.replace(/\.[^/.]+$/, ''))
     setClips([])
     setSelectedClip(null)
     setYoutubeInfo(null)
-    setVideoUrl('') // reset real url until upload done
-    addLog('Preview blob ready - upload ke Cloudinary online...')
+    addLog('Preview blob ready online - bisa langsung Tes Play - upload ke Cloudinary paralel...')
 
     // get duration first
     const tempVideo = document.createElement('video')
@@ -398,26 +398,27 @@ export default function EditorPage() {
       setDuration(120)
     }
 
-    // upload to Cloudinary - ONLINE ONLY, no fallback
+    // upload to Cloudinary - ONLINE, tapi tetap bisa generate pakai blob sambil nunggu
     setIsUploading(true)
     try {
       const fd = new FormData()
       fd.append('file', f)
-      addLog('Uploading ke /api/upload (Cloudinary) - online...')
+      addLog('Uploading ke /api/upload (Cloudinary) online paralel...')
       const res = await fetch('/api/upload', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Upload gagal')
       if (!data.url) throw new Error('No URL dari Cloudinary')
       setVideoUrl(data.url)
       setVideoPreviewUrl(data.url)
-      addLog(`Upload Cloudinary OK online: ${data.url.slice(0,50)}... dur ${data.duration || '?'}s`)
+      addLog(`Upload Cloudinary OK online: ${data.url.slice(0,50)}... dur ${data.duration || '?'}s - sekarang full online Cloudinary`)
       if (data.duration) setDuration(data.duration)
-      // auto transcribe after upload - full online flow
-      addLog('Auto transcribe online setelah upload...')
+      // auto transcribe after Cloudinary OK - full online flow
+      addLog('Auto transcribe online setelah Cloudinary OK...')
       setTimeout(() => handleTranscribeOnline(data.url, data.duration || duration || 120), 500)
     } catch (e: any) {
-      addLog(`Upload Cloudinary gagal online: ${e.message}`)
-      alert(`Upload gagal: ${e.message}. Coba lagi.`)
+      addLog(`Upload Cloudinary gagal online: ${e.message} - tetap bisa generate pakai blob preview, tapi untuk save/export butuh Cloudinary`)
+      // jangan alert block, cuma log - biar tetap bisa generate offline blob
+      // alert(`Upload Cloudinary gagal: ${e.message}. Tetap bisa preview & generate, tapi save butuh Cloudinary.`)
     }
     setIsUploading(false)
   }
@@ -689,8 +690,8 @@ export default function EditorPage() {
       videoRef.current.play().then(() => setIsPlaying(true)).catch(()=>{})
       return
     }
-    addLog('Gagal tes online: belum ada video')
-    alert('Upload video dulu di Langkah 1 - harus online Cloudinary')
+    addLog('Gagal tes online: belum ada video - upload dulu')
+    alert('Upload video dulu di Langkah 1 atau tempel YouTube')
   }
 
   const doExport = async () => {
@@ -805,7 +806,7 @@ export default function EditorPage() {
     setTimeout(() => { setShowExport(false); setProgress(0); setExportStatus('') }, 2000)
   }
 
-  const isGenerateEnabled = !!(videoUrl || youtubeInfo) && !isProcessing && !isYoutubeLoading && !isUploading
+  const isGenerateEnabled = !!(videoUrl || previewBlobUrl || youtubeInfo) && !isProcessing && !isYoutubeLoading
 
   return (
     <div className="min-h-screen bg-[#FCFCF9] text-[#0A0A0A]">
