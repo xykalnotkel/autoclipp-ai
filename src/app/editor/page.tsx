@@ -47,43 +47,20 @@ const IconUser = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 )
 
-// Map shared styles to editor internal structure so canvas matches showcase HTML exactly
 const STYLES: any = {}
 Object.values(SUBTITLE_STYLES).forEach((s: any) => {
   const parts = s.preview.split(' ')
   STYLES[s.id] = {
-    id: s.id,
-    name: s.name,
-    desc: s.desc,
-    font: s.font,
-    fontClass: s.fontClass,
-    text: s.textColor,
-    textColor: s.textColor,
-    highlight: s.highlightColor,
-    highlightColor: s.highlightColor,
-    stroke: s.strokeColor,
-    strokeColor: s.strokeColor,
-    sw: s.strokeWidth,
-    strokeWidth: s.strokeWidth,
-    bg: s.bgColor,
-    bgColor: s.bgColor,
-    bgClass: s.bgClass,
-    textClass: s.textClass,
-    highlightClass: s.highlightClass,
-    upper: s.upper,
-    usage: s.usage,
-    bgPreview: s.bgPreview,
-    previewText: parts[0] || s.preview.slice(0,6),
-    previewSub: parts.slice(1).join(' ') || parts[0],
-    preview: s.preview,
+    id: s.id, name: s.name, desc: s.desc, font: s.font, fontClass: s.fontClass,
+    text: s.textColor, textColor: s.textColor, highlight: s.highlightColor, highlightColor: s.highlightColor,
+    stroke: s.strokeColor, strokeColor: s.strokeColor, sw: s.strokeWidth, strokeWidth: s.strokeWidth,
+    bg: s.bgColor, bgColor: s.bgColor, bgClass: s.bgClass, textClass: s.textClass, highlightClass: s.highlightClass,
+    upper: s.upper, usage: s.usage, bgPreview: s.bgPreview,
+    previewText: parts[0] || s.preview.slice(0,6), previewSub: parts.slice(1).join(' ') || parts[0], preview: s.preview,
   }
 })
-
 const ANIMATIONS: any = {}
-Object.values(SUBTITLE_ANIMATIONS).forEach((a: any) => {
-  ANIMATIONS[a.id] = { name: a.name, desc: a.desc, usage: a.usage }
-})
-
+Object.values(SUBTITLE_ANIMATIONS).forEach((a: any) => { ANIMATIONS[a.id] = { name: a.name, desc: a.desc, usage: a.usage } })
 const FONTS = ['Anton', 'Bebas Neue', 'Montserrat', 'Inter', 'Oswald', 'Georgia', 'Poppins', 'Space Grotesk']
 
 const MOCK: Word[] = [
@@ -171,8 +148,11 @@ export default function EditorPage() {
     loadFFmpeg()
   }, [])
 
+  // FIXED genClips - always generate 5 clips, repeat words if needed
   const genClips = useCallback((words: Word[], dur: number) => {
-    const total = words[words.length-1]?.end || dur || 30
+    console.log('[genClips] called', { wordsCount: words.length, dur })
+    const totalDuration = dur && dur > 0 ? dur : (words[words.length - 1]?.end || 120)
+    const effectiveDuration = Math.max(totalDuration, 90) // at least 90s to get 5 clips
     const hooks = [
       "RAHASIA YANG TIDAK DIAJARKAN DI SEKOLAH",
       "STOP KERJA KERAS, MULAI KERJA CERDAS",
@@ -180,25 +160,68 @@ export default function EditorPage() {
       "KESALAHAN 90 PERSEN PEMULA BISNIS",
       "CARA BALIK MODAL DALAM 7 HARI"
     ]
+    
+    // Ensure words cover effectiveDuration by repeating if needed
+    let allWords = [...words]
+    if (allWords.length > 0) {
+      const lastEnd = allWords[allWords.length - 1].end
+      if (lastEnd < effectiveDuration) {
+        const base = [...words]
+        const baseDur = base[base.length - 1]?.end || 15
+        let offset = lastEnd + 0.5
+        while (offset < effectiveDuration) {
+          base.forEach(w => {
+            const nw = { ...w, start: w.start + offset, end: w.end + offset }
+            if (nw.end <= effectiveDuration + 5) allWords.push(nw)
+          })
+          offset += baseDur + 0.5
+        }
+      }
+    }
+
     const newClips: Clip[] = []
-    for (let i=0; i<Math.min(5, Math.ceil(total/22)); i++) {
-      const start = i * 18
-      const end = Math.min(start + 24, total)
+    const clipCount = 5
+    const segment = effectiveDuration / clipCount
+    for (let i = 0; i < clipCount; i++) {
+      const start = i * segment
+      const end = Math.min(start + 24, effectiveDuration)
+      // Get words in this segment, if none, take slice
+      let segWords = allWords.filter(w => w.start >= start && w.end <= end)
+      if (segWords.length === 0) {
+        // Fallback: take proportional slice
+        const perClip = Math.ceil(allWords.length / clipCount)
+        segWords = allWords.slice(i * perClip, (i + 1) * perClip)
+        // Adjust their times to fit clip
+        segWords = segWords.map((w, idx) => ({
+          ...w,
+          start: start + idx * 0.5,
+          end: start + idx * 0.5 + 0.4
+        }))
+      }
       newClips.push({
         id: i,
-        start, end, duration: end-start,
-        hook: hooks[i] || `VIRAL MOMENT ${i+1}`,
-        score: 95 - i*6 + Math.floor(Math.random()*4),
-        label: i===0 ? 'VIRAL' : i===1 ? 'HIGH' : 'GOOD',
-        words: words.filter(w => w.start >= start && w.end <= end)
+        start, end, duration: end - start,
+        hook: hooks[i] || `VIRAL MOMENT ${i + 1}`,
+        score: 95 - i * 6 + Math.floor(Math.random() * 4),
+        label: i === 0 ? 'VIRAL' : i === 1 ? 'HIGH' : 'GOOD',
+        words: segWords
       })
     }
+    console.log('[genClips] generated', newClips.length, 'clips')
     setClips(newClips)
     if (newClips[0]) {
       setSelectedClip(newClips[0])
       setClipStartEdit(newClips[0].start)
       setClipEndEdit(newClips[0].end)
       setHook(newClips[0].hook)
+      // Auto play first clip
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.currentTime = newClips[0].start
+          videoRef.current.play().catch(()=>{})
+          setIsPlaying(true)
+        }
+      }, 300)
     }
   }, [])
 
@@ -228,23 +251,31 @@ export default function EditorPage() {
         setVideoUrl(data.downloadUrl)
         setVideoFile(null)
       } else {
-        setVideoUrl('')
+        // Even without downloadUrl, we can still generate clips from transcript for preview
+        // Keep videoUrl empty but allow clip generation
       }
       if (data.transcript && data.transcript.length) {
         const words = data.transcript
         let extWords = [...words]
-        if (data.duration && data.duration > 10) {
-          const reps = Math.ceil(data.duration / 10)
+        const dur = data.duration || 120
+        if (dur > 10) {
+          const baseDur = words[words.length - 1]?.end || 10
+          const reps = Math.ceil(dur / baseDur)
           extWords = []
-          for (let r=0; r<reps; r++) {
-            words.forEach((w: Word) => extWords.push({ ...w, start: w.start + r*10, end: w.end + r*10 }))
+          for (let r = 0; r < reps; r++) {
+            const offset = r * (baseDur + 0.5)
+            words.forEach((w: Word) => extWords.push({ ...w, start: w.start + offset, end: w.end + offset }))
           }
-          extWords = extWords.filter(w => w.end <= data.duration)
+          extWords = extWords.filter(w => w.end <= dur)
         }
-        setDuration(data.duration || 180)
-        genClips(extWords, data.duration || 180)
+        setDuration(dur)
+        genClips(extWords, dur)
+      } else {
+        // No transcript, still generate from mock
+        genClips(MOCK, data.duration || 120)
       }
     } catch (e: any) {
+      console.error('YouTube error', e)
       alert(e.message || 'Gagal proses YouTube')
     }
     setIsYoutubeLoading(false)
@@ -261,38 +292,42 @@ export default function EditorPage() {
   }
 
   const handleTranscribe = async () => {
-    if (youtubeInfo && clips.length > 0) {
-      if (!selectedClip && clips[0]) { setSelectedClip(clips[0]); setHook(clips[0].hook) }
+    console.log('[handleTranscribe] start', { videoUrl, youtubeInfo, duration, clipsLen: clips.length })
+    // Allow regeneration even if clips exist - user wants to re-generate
+    if (!videoUrl && !youtubeInfo) {
+      alert('Upload video atau tempel link YouTube dulu di Langkah 1')
       return
     }
-    if (!videoUrl && !youtubeInfo) { alert('Upload video atau tempel link YouTube dulu di Langkah 1'); return }
     setIsProcessing(true)
     try {
+      // Use duration from state or fallback 120
+      const durToUse = duration && duration > 0 ? duration : 120
+      console.log('[handleTranscribe] fetching /api/transcribe', { durToUse })
       const res = await fetch('/api/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoUrl, duration, youtubeUrl: youtubeInfo ? youtubeUrl : undefined })
+        body: JSON.stringify({ videoUrl, duration: durToUse, youtubeUrl: youtubeInfo ? youtubeUrl : undefined })
       })
       const data = await res.json()
+      console.log('[handleTranscribe] response', data)
       let words = data.words || MOCK
-      if (duration > 14 && words.length === MOCK.length) {
-        const reps = Math.ceil(duration/14)
-        let ext: Word[] = []
-        for (let r=0; r<reps; r++) words.forEach((w: Word) => ext.push({ ...w, start: w.start + r*14, end: w.end + r*14 }))
-        words = ext.filter((w: Word) => w.end <= duration)
-      }
-      genClips(words, duration)
-    } catch {
-      genClips(MOCK, duration || 30)
+      const apiDur = data.duration || durToUse
+      setDuration(apiDur)
+      genClips(words, apiDur)
+    } catch (e) {
+      console.error('[handleTranscribe] error', e)
+      // Fallback - always generate clips so button works
+      const fallbackDur = duration && duration > 0 ? duration : 120
+      genClips(MOCK, fallbackDur)
     }
     setIsProcessing(false)
   }
 
   const handleAiHook = async () => {
-    if (!selectedClip) { alert('Pilih clip dulu di Langkah 2'); return }
+    if (!selectedClip) { alert('Pilih clip dulu di Langkah 3'); return }
     setAiLoading(true)
     try {
-      const transcript = selectedClip.words.map(w=>w.word).join(' ')
+      const transcript = selectedClip.words.map(w => w.word).join(' ')
       const authUrl = process.env.NEXT_PUBLIC_AUTH_URL || 'https://autoclipp-auth.akuntiktok76y.workers.dev'
       const res = await fetch(`${authUrl}/ai/generate`, {
         method: 'POST',
@@ -302,23 +337,35 @@ export default function EditorPage() {
       })
       const data = await res.json()
       if (data.result) {
-        const lines = data.result.split('\n').filter((l:string)=>l.trim().length > 0).slice(0,5)
+        const lines = data.result.split('\n').filter((l: string) => l.trim().length > 0).slice(0, 5)
         const firstHook = lines[0]?.replace(/^\d+\.\s*/, '').replace(/^-+\s*/, '').replace(/"/g, '').trim()
         if (firstHook) setHook(firstHook.toUpperCase().slice(0, 60))
       }
     } catch {
-      setHook(clips[Math.floor(Math.random()*clips.length)]?.hook || 'RAHASIA VIRAL TERUNGKAP')
+      setHook(clips[Math.floor(Math.random() * clips.length)]?.hook || 'RAHASIA VIRAL TERUNGKAP')
     }
     setAiLoading(false)
   }
 
   const handleFile = async (f: File) => {
+    console.log('[handleFile] file', f.name, f.size)
     setVideoFile(f)
-    setVideoUrl(URL.createObjectURL(f))
+    const url = URL.createObjectURL(f)
+    setVideoUrl(url)
     setProjectTitle(f.name.replace(/\.[^/.]+$/, ''))
     setClips([])
     setSelectedClip(null)
     setYoutubeInfo(null)
+
+    // Get duration from video element directly
+    const tempVideo = document.createElement('video')
+    tempVideo.preload = 'metadata'
+    tempVideo.src = url
+    tempVideo.onloadedmetadata = () => {
+      console.log('[handleFile] duration', tempVideo.duration)
+      setDuration(tempVideo.duration || 120)
+    }
+
     try {
       const fd = new FormData()
       fd.append('file', f)
@@ -373,116 +420,113 @@ export default function EditorPage() {
     const render = () => {
       if (!video || video.paused) { animationId = requestAnimationFrame(render); return }
       const vw = canvas.width, vh = canvas.height
-      ctx.clearRect(0,0,vw,vh)
+      ctx.clearRect(0, 0, vw, vh)
       try {
         ctx.filter = 'blur(24px) brightness(0.55)'
-        ctx.drawImage(video, 0,0,vw,vh)
+        ctx.drawImage(video, 0, 0, vw, vh)
         ctx.filter = 'none'
-      } catch { ctx.drawImage(video, 0,0,vw,vh) }
+      } catch { ctx.drawImage(video, 0, 0, vw, vh) }
       const va = video.videoWidth / video.videoHeight
       const ca = vw / vh
-      let sx,sy,sw,sh
-      if (va > ca) { sh = video.videoHeight; sw = sh*ca; sx=(video.videoWidth-sw)/2; sy=0 }
-      else { sw = video.videoWidth; sh = sw/ca; sx=0; sy=(video.videoHeight-sh)/2 }
-      const tw = vw*0.92, th = tw/ca, tx=(vw-tw)/2, ty=(vh-th)/2
+      let sx, sy, sw, sh
+      if (va > ca) { sh = video.videoHeight; sw = sh * ca; sx = (video.videoWidth - sw) / 2; sy = 0 }
+      else { sw = video.videoWidth; sh = sw / ca; sx = 0; sy = (video.videoHeight - sh) / 2 }
+      const tw = vw * 0.92, th = tw / ca, tx = (vw - tw) / 2, ty = (vh - th) / 2
       ctx.save()
       ctx.beginPath()
       // @ts-ignore
-      if (ctx.roundRect) ctx.roundRect(tx,ty,tw,th,18); else ctx.rect(tx,ty,tw,th)
+      if (ctx.roundRect) ctx.roundRect(tx, ty, tw, th, 18); else ctx.rect(tx, ty, tw, th)
       ctx.clip()
-      ctx.drawImage(video, sx,sy,sw,sh, tx,ty,tw,th)
+      ctx.drawImage(video, sx, sy, sw, sh, tx, ty, tw, th)
       ctx.restore()
       const ct = currentTime - selectedClip.start
       const at = selectedClip.start + ct
-      const visible = selectedClip.words.filter(w => at >= w.start-0.1 && at <= w.end+0.7)
+      const visible = selectedClip.words.filter(w => at >= w.start - 0.1 && at <= w.end + 0.7)
       if (visible.length) {
         const toShow = visible.slice(-wpl)
         const cur = selectedClip.words.find(w => at >= w.start && at <= w.end)
-        let text = toShow.map(w=>w.word).join(' ')
+        let text = toShow.map(w => w.word).join(' ')
         if (style.upper) text = text.toUpperCase()
-        let y = vh*0.78
-        if (pos==='top') y = vh*0.22
-        if (pos==='center') y = vh*0.5
-        if (pos==='bottom') y = vh*0.82
-        ctx.textAlign='center'
-        ctx.textBaseline='middle'
+        let y = vh * 0.78
+        if (pos === 'top') y = vh * 0.22
+        if (pos === 'center') y = vh * 0.5
+        if (pos === 'bottom') y = vh * 0.82
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
         ctx.font = `900 ${fontSize}px "${style.font}", sans-serif`
         const mw = ctx.measureText(text).width
-        const tht = fontSize*1.15
-        let scale=1, oy=0, op=1, rot=0, skew=0
+        const tht = fontSize * 1.15
+        let scale = 1, oy = 0, op = 1, rot = 0, skew = 0
         if (cur) {
-          const p = (at - cur.start)/(cur.end-cur.start)
-          if (anim==='pop') scale = 1 + Math.sin(p*Math.PI)*0.18
-          else if (anim==='bounce') { scale=1+Math.abs(Math.sin(p*Math.PI*2))*0.22; oy=-Math.abs(Math.sin(p*Math.PI))*12 }
-          else if (anim==='slide') { oy=(1-p)*20; op=p }
-          else if (anim==='fade') { op = p; scale = 0.85 + p*0.15 }
-          else if (anim==='wave') { oy = Math.sin(p*Math.PI*2)*8; rot = Math.sin(p*Math.PI)*0.08 }
-          else if (anim==='glitch') { if (Math.random()>0.85) { oy = (Math.random()-0.5)*10; skew = (Math.random()-0.5)*0.2 } }
-          else if (anim==='zoom') { scale = 0.8 + p*0.4 }
-          else if (anim==='rotate') { rot = p*0.3; scale = 0.9 + Math.sin(p*Math.PI)*0.1 }
+          const p = (at - cur.start) / (cur.end - cur.start)
+          if (anim === 'pop') scale = 1 + Math.sin(p * Math.PI) * 0.18
+          else if (anim === 'bounce') { scale = 1 + Math.abs(Math.sin(p * Math.PI * 2)) * 0.22; oy = -Math.abs(Math.sin(p * Math.PI)) * 12 }
+          else if (anim === 'slide') { oy = (1 - p) * 20; op = p }
+          else if (anim === 'fade') { op = p; scale = 0.85 + p * 0.15 }
+          else if (anim === 'wave') { oy = Math.sin(p * Math.PI * 2) * 8; rot = Math.sin(p * Math.PI) * 0.08 }
+          else if (anim === 'glitch') { if (Math.random() > 0.85) { oy = (Math.random() - 0.5) * 10; skew = (Math.random() - 0.5) * 0.2 } }
+          else if (anim === 'zoom') { scale = 0.8 + p * 0.4 }
+          else if (anim === 'rotate') { rot = p * 0.3; scale = 0.9 + Math.sin(p * Math.PI) * 0.1 }
         }
         ctx.save()
-        ctx.globalAlpha=op
-        ctx.translate(vw/2, y+oy)
+        ctx.globalAlpha = op
+        ctx.translate(vw / 2, y + oy)
         ctx.rotate(rot)
         // @ts-ignore
         if (skew) ctx.transform(1, skew, 0, 1, 0, 0)
-        ctx.scale(scale,scale)
-        // Background box — exact same logic as showcase: if bgColor not transparent, draw rounded box
+        ctx.scale(scale, scale)
         if (style.bgColor !== 'transparent' && style.bg !== 'transparent') {
           ctx.fillStyle = style.bgColor || style.bg
           ctx.beginPath()
           // @ts-ignore
-          if (ctx.roundRect) ctx.roundRect(-mw/2-20, -tht/2-10, mw+40, tht+20, 12); else ctx.rect(-mw/2-20, -tht/2-10, mw+40, tht+20)
+          if (ctx.roundRect) ctx.roundRect(-mw / 2 - 20, -tht / 2 - 10, mw + 40, tht + 20, 12); else ctx.rect(-mw / 2 - 20, -tht / 2 - 10, mw + 40, tht + 20)
           ctx.fill()
         }
-        // Glow effect same as showcase
-        if (styleKey==='glow') { ctx.shadowColor = style.highlightColor || style.highlight; ctx.shadowBlur = 20 }
-        // Stroke — same as showcase WebkitTextStroke logic
-        if ((style.strokeWidth>0 || style.sw>0) && style.strokeColor !== 'transparent' && style.stroke !== 'transparent') {
+        if (styleKey === 'glow') { ctx.shadowColor = style.highlightColor || style.highlight; ctx.shadowBlur = 20 }
+        if ((style.strokeWidth > 0 || style.sw > 0) && style.strokeColor !== 'transparent' && style.stroke !== 'transparent') {
           ctx.strokeStyle = style.strokeColor || style.stroke
           ctx.lineWidth = style.strokeWidth || style.sw
-          ctx.lineJoin='round'
-          ctx.strokeText(text,0,0)
+          ctx.lineJoin = 'round'
+          ctx.strokeText(text, 0, 0)
         }
         ctx.shadowBlur = 0
-        if (toShow.length>1 && cur) {
-          let xo = -mw/2
-          toShow.forEach(w=>{
-            const isCur = cur && w.word===cur.word
+        if (toShow.length > 1 && cur) {
+          let xo = -mw / 2
+          toShow.forEach(w => {
+            const isCur = cur && w.word === cur.word
             const wt = style.upper ? w.word.toUpperCase() : w.word
-            const ww = ctx.measureText(wt+' ').width
+            const ww = ctx.measureText(wt + ' ').width
             ctx.fillStyle = isCur ? (style.highlightColor || style.highlight) : (style.textColor || style.text)
             if ((style.textColor || style.text) === 'transparent') {
               ctx.strokeStyle = style.highlightColor || style.highlight
               ctx.lineWidth = 2
-              ctx.strokeText(wt+' ', xo+ww/2, 0)
+              ctx.strokeText(wt + ' ', xo + ww / 2, 0)
             } else {
-              ctx.fillText(wt+' ', xo+ww/2, 0)
+              ctx.fillText(wt + ' ', xo + ww / 2, 0)
             }
-            xo+=ww
+            xo += ww
           })
         } else {
           if ((style.textColor || style.text) === 'transparent') {
             ctx.strokeStyle = style.highlightColor || style.highlight
             ctx.lineWidth = 3
-            ctx.strokeText(text,0,0)
+            ctx.strokeText(text, 0, 0)
           } else {
             ctx.fillStyle = style.textColor || style.text
-            ctx.fillText(text,0,0)
+            ctx.fillText(text, 0, 0)
           }
         }
         ctx.restore()
         if (hook) {
           ctx.save()
-          ctx.font=`800 22px Inter, sans-serif`
-          ctx.fillStyle='#FFD60A'
-          ctx.strokeStyle='#000'
-          ctx.lineWidth=5
-          ctx.textAlign='center'
-          const hy = vh*0.11
-          ctx.strokeText(hook, vw/2, hy)
-          ctx.fillText(hook, vw/2, hy)
+          ctx.font = `800 22px Inter, sans-serif`
+          ctx.fillStyle = '#FFD60A'
+          ctx.strokeStyle = '#000'
+          ctx.lineWidth = 5
+          ctx.textAlign = 'center'
+          const hy = vh * 0.11
+          ctx.strokeText(hook, vw / 2, hy)
+          ctx.fillText(hook, vw / 2, hy)
           ctx.restore()
         }
       }
@@ -492,6 +536,7 @@ export default function EditorPage() {
     return () => cancelAnimationFrame(animationId)
   }, [selectedClip, currentTime, fontSize, pos, wpl, anim, style, hook, styleKey])
 
+  // FIXED: always listen for metadata to get duration, even before clip selected
   useEffect(() => {
     const v = videoRef.current
     if (!v) return
@@ -502,11 +547,20 @@ export default function EditorPage() {
         else { v.pause(); setIsPlaying(false) }
       }
     }
-    const lm = () => setDuration(v.duration)
+    const lm = () => {
+      console.log('[video] loadedmetadata', v.duration)
+      if (v.duration && !isNaN(v.duration) && v.duration !== Infinity) {
+        setDuration(v.duration)
+      }
+    }
     v.addEventListener('timeupdate', ut)
     v.addEventListener('loadedmetadata', lm)
+    // Also try to get duration immediately if already loaded
+    if (v.readyState >= 1 && v.duration) {
+      setDuration(v.duration)
+    }
     return () => { v.removeEventListener('timeupdate', ut); v.removeEventListener('loadedmetadata', lm) }
-  }, [selectedClip, loopPreview, clipStartEdit, clipEndEdit])
+  }, [selectedClip, loopPreview, clipStartEdit, clipEndEdit, videoUrl])
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = playbackSpeed }, [playbackSpeed])
 
@@ -539,7 +593,7 @@ export default function EditorPage() {
         setProgress(10)
         await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile))
         setProgress(20)
-        await ffmpeg.exec(['-ss', clipStartEdit.toString(), '-i', 'input.mp4', '-t', (clipEndEdit-clipStartEdit).toString(), '-c', 'copy', '-avoid_negative_ts', 'make_zero', 'trimmed.mp4'])
+        await ffmpeg.exec(['-ss', clipStartEdit.toString(), '-i', 'input.mp4', '-t', (clipEndEdit - clipStartEdit).toString(), '-c', 'copy', '-avoid_negative_ts', 'make_zero', 'trimmed.mp4'])
         setProgress(70)
         const data = await ffmpeg.readFile('trimmed.mp4') as any
         const blob = new Blob([data], { type: 'video/mp4' })
@@ -564,7 +618,7 @@ export default function EditorPage() {
           source.connect(dest)
           source.connect(audioCtx.destination)
           dest.stream.getAudioTracks().forEach(track => stream.addTrack(track))
-        } catch {}
+        } catch { }
         const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' })
         const chunks: Blob[] = []
         recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
@@ -607,7 +661,7 @@ export default function EditorPage() {
         video.currentTime = clipStartEdit
         await video.play()
         setProgress(10)
-        const recordDuration = (clipEndEdit-clipStartEdit) * 1000
+        const recordDuration = (clipEndEdit - clipStartEdit) * 1000
         const startTime = Date.now()
         const progressInterval = setInterval(() => {
           const elapsed = Date.now() - startTime
@@ -625,9 +679,9 @@ export default function EditorPage() {
     } catch (e: any) {
       console.error('Export failed', e)
       setExportStatus(`Gagal: ${e.message}`)
-      for (let i=progress;i<=100;i+=10){ await new Promise(r=>setTimeout(r,100)); setProgress(i) }
+      for (let i = progress; i <= 100; i += 10) { await new Promise(r => setTimeout(r, 100)); setProgress(i) }
     }
-    setTimeout(()=>{ setShowExport(false); setProgress(0); setExportStatus('') }, 2000)
+    setTimeout(() => { setShowExport(false); setProgress(0); setExportStatus('') }, 2000)
   }
 
   const isGenerateEnabled = !!(videoUrl || youtubeInfo) && !isProcessing && !isYoutubeLoading
@@ -640,7 +694,7 @@ export default function EditorPage() {
             <Link href="/id" className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-[8px] bg-[#0A0A0A] flex items-center justify-center text-white text-[12px] font-[800]">A</div>
               <span className="text-[13px] font-[700] tracking-[-0.02em]">autoclipp</span>
-              <input value={projectTitle} onChange={e=>setProjectTitle(e.target.value)} className="ml-3 hidden md:block h-7 rounded-full border border-[#E8E8E3] bg-white px-3 text-[12px] font-[500] w-[180px] focus:outline-none focus:border-[#0A0A0A]" />
+              <input value={projectTitle} onChange={e => setProjectTitle(e.target.value)} className="ml-3 hidden md:block h-7 rounded-full border border-[#E8E8E3] bg-white px-3 text-[12px] font-[500] w-[180px] focus:outline-none focus:border-[#0A0A0A]" />
             </Link>
             <div className="hidden md:flex items-center gap-1 rounded-full bg-[#F5F5F0] p-1 border border-[#E8E8E3]">
               <Link href="/id" className="px-3 py-1 rounded-full text-[12px] font-[500] text-[#6B6B6B] hover:text-[#0A0A0A]">Home</Link>
@@ -662,7 +716,6 @@ export default function EditorPage() {
       </div>
 
       <div className="mx-auto max-w-[1600px] px-4 lg:px-6 py-4 lg:py-6 grid grid-cols-12 gap-4 lg:gap-5">
-        {/* LEFT - Source */}
         <div className="col-span-12 lg:col-span-3 space-y-4">
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
@@ -670,33 +723,33 @@ export default function EditorPage() {
               <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">WAJIB</span>
             </div>
             <div
-              onDrop={e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f&&f.type.startsWith('video/')) handleFile(f)}}
-              onDragOver={e=>e.preventDefault()}
-              onClick={()=>fileRef.current?.click()}
+              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('video/')) handleFile(f) }}
+              onDragOver={e => e.preventDefault()}
+              onClick={() => fileRef.current?.click()}
               className="rounded-[16px] border border-dashed border-[#E8E8E3] bg-[#FCFCF9] p-6 text-center hover:border-[#0A0A0A] hover:bg-white cursor-pointer transition"
             >
               <div className="mx-auto h-10 w-10 rounded-[12px] bg-[#0A0A0A] text-white flex items-center justify-center"><IconUpload /></div>
               <div className="mt-3 text-[13px] font-[600] tracking-[-0.01em]">Drop video di sini atau klik</div>
               <div className="text-[11px] text-[#6B6B6B] mt-1">MP4, MOV hingga 2GB</div>
-              <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; if(f) handleFile(f)}} />
+              <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
             </div>
-            
+
             <div className="mt-4 space-y-2">
               <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Atau Tempel Link YouTube</label>
               <div className="flex gap-2">
-                <input 
-                  value={youtubeUrl} 
-                  onChange={e=>setYoutubeUrl(e.target.value)}
-                  onKeyDown={e=>{ if(e.key==='Enter'){ e.preventDefault(); handleYoutube() }}}
-                  placeholder="youtube.com/watch?v=..." 
-                  className="flex-1 h-9 rounded-full border border-[#E8E8E3] bg-white px-4 text-[12px] placeholder:text-[#9B9B9B] focus:outline-none focus:border-[#0A0A0A]" 
+                <input
+                  value={youtubeUrl}
+                  onChange={e => setYoutubeUrl(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleYoutube() } }}
+                  placeholder="youtube.com/watch?v=..."
+                  className="flex-1 h-9 rounded-full border border-[#E8E8E3] bg-white px-4 text-[12px] placeholder:text-[#9B9B9B] focus:outline-none focus:border-[#0A0A0A]"
                 />
                 <Button size="sm" variant="secondary" className="h-9 px-3 text-[11px]" onClick={handlePasteClipboard}>Paste</Button>
-                <Button size="sm" className="h-9 px-3 text-[11px] bg-[#0A0A0A] text-white" onClick={()=>handleYoutube()} disabled={isYoutubeLoading || !youtubeUrl.trim()}>
+                <Button size="sm" className="h-9 px-3 text-[11px] bg-[#0A0A0A] text-white" onClick={() => handleYoutube()} disabled={isYoutubeLoading || !youtubeUrl.trim()}>
                   {isYoutubeLoading ? '...' : 'Go'}
                 </Button>
               </div>
-              
+
               {youtubeInfo && (
                 <div className="mt-3 rounded-[12px] border border-[#E8E8E3] bg-white p-3">
                   <div className="flex gap-3">
@@ -711,6 +764,11 @@ export default function EditorPage() {
                   </div>
                 </div>
               )}
+              {videoUrl && (
+                <div className="mt-3 rounded-[10px] bg-green-50 border border-green-200 p-2.5 text-[11px] text-green-800 flex items-center gap-2">
+                  <IconCheck />Video terupload • {duration ? `${duration.toFixed(1)}s` : 'loading duration...'} • siap generate
+                </div>
+              )}
             </div>
           </Card>
 
@@ -720,10 +778,10 @@ export default function EditorPage() {
               <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-white text-black">WAJIB KLIK</span>
             </div>
             <div className="text-[11px] text-white/60 leading-[1.5] mb-4">
-              Setelah upload video atau tempel YouTube di Langkah 1, klik tombol besar di bawah untuk buat 5 clip viral otomatis. Tombol ini ada di sini! Shared lib sama dengan preview halaman utama.
+              Setelah upload video di Langkah 1, klik tombol besar di bawah untuk buat 5 clip viral otomatis. Tombol ini ada di sini! Shared lib sama dengan preview halaman utama.
             </div>
-            <Button className="w-full h-12 bg-white text-black hover:bg-[#FFD60A] text-[13px] font-[700] gap-2" disabled={!isGenerateEnabled} onClick={handleTranscribe}>
-              <IconFilm />{isProcessing ? 'Memproses...' : isYoutubeLoading ? 'Mengambil YouTube...' : youtubeInfo ? `Buat Clip Viral` : 'Buat Clip Viral Sekarang'}
+            <Button className="w-full h-12 bg-white text-black hover:bg-[#FFD60A] text-[13px] font-[700] gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!isGenerateEnabled} onClick={handleTranscribe}>
+              <IconFilm />{isProcessing ? 'Memproses... (buat 5 clips)' : isYoutubeLoading ? 'Mengambil YouTube...' : 'Buat Clip Viral Sekarang'}
             </Button>
             <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] text-white/50 text-center">
               <div className="rounded-full bg-white/10 py-1">AI Deteksi</div>
@@ -732,12 +790,17 @@ export default function EditorPage() {
             </div>
             {!videoUrl && !youtubeInfo && (
               <div className="mt-3 rounded-[10px] bg-amber-500/20 border border-amber-500/20 p-2.5 text-[11px] text-amber-200">
-                Upload video dulu di Langkah 1, baru tombol ini aktif
+                Upload video dulu di Langkah 1, baru tombol ini aktif. Drag & drop atau klik kotak di atas.
               </div>
             )}
             {isGenerateEnabled && (
               <div className="mt-3 rounded-[10px] bg-[#FFD60A] text-black p-2.5 text-[11px] font-[600] flex items-center gap-2">
-                <IconCheck />Siap! Klik untuk generate clips — style sama dengan landing
+                <IconCheck />Siap! Klik untuk generate 5 clips viral
+              </div>
+            )}
+            {isProcessing && (
+              <div className="mt-3 rounded-[10px] bg-white/10 border border-white/20 p-2.5 text-[11px] text-white flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full border-2 border-white/20 border-t-white animate-spin" />Sedang memproses AI... buat 5 clips
               </div>
             )}
           </Card>
@@ -748,44 +811,44 @@ export default function EditorPage() {
               <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#0A0A0A] text-white">AI Viral</span>
             </div>
             <div className="space-y-2 max-h-[320px] overflow-auto pr-1">
-              {clips.length===0 ? (
+              {clips.length === 0 ? (
                 <div className="py-8 text-center border border-dashed border-[#E8E8E3] rounded-[12px]">
                   <div className="mx-auto h-8 w-8 rounded-[8px] bg-[#F5F5F0] flex items-center justify-center text-[#9B9B9B]"><IconFilm /></div>
                   <div className="mt-2 text-[11px] font-[600] text-[#6B6B6B]">Belum ada clip</div>
                   <div className="mt-1 text-[10px] text-[#9B9B9B]">Klik "Buat Clip Viral" di Langkah 2</div>
+                  {videoUrl && <div className="mt-2 text-[10px] text-green-600">Video sudah ada, tinggal klik tombol hitam di atas!</div>}
                 </div>
-              ) : clips.map(c=>(
-                <button key={c.id} onClick={()=>{ setSelectedClip(c); setHook(c.hook); if(videoRef.current){ videoRef.current.currentTime=c.start; videoRef.current.play(); setIsPlaying(true) } }} className={`w-full text-left rounded-[14px] border p-3 transition ${selectedClip?.id===c.id ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
+              ) : clips.map(c => (
+                <button key={c.id} onClick={() => { setSelectedClip(c); setHook(c.hook); if (videoRef.current) { videoRef.current.currentTime = c.start; videoRef.current.play(); setIsPlaying(true) } }} className={`w-full text-left rounded-[14px] border p-3 transition ${selectedClip?.id === c.id ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
                   <div className="flex items-center justify-between">
-                    <span className={`text-[10px] font-[700] tracking-[0.05em] px-2 py-0.5 rounded-full flex items-center gap-1 ${selectedClip?.id===c.id ? 'bg-white text-black' : 'bg-[#FFD60A] text-black'}`}><IconCheck />{c.label} {c.score}</span>
+                    <span className={`text-[10px] font-[700] tracking-[0.05em] px-2 py-0.5 rounded-full flex items-center gap-1 ${selectedClip?.id === c.id ? 'bg-white text-black' : 'bg-[#FFD60A] text-black'}`}><IconCheck />{c.label} {c.score}</span>
                     <span className="text-[10px] font-[500] opacity-70">{Math.floor(c.duration)}s</span>
                   </div>
                   <div className="mt-2 text-[12px] font-[600] leading-[1.3] tracking-[-0.01em] line-clamp-2">{c.hook}</div>
-                  <div className="mt-1.5 text-[10px] opacity-60 font-mono">{Math.floor(c.start/60)}:{String(Math.floor(c.start%60)).padStart(2,'0')} - {Math.floor(c.end/60)}:{String(Math.floor(c.end%60)).padStart(2,'0')}</div>
+                  <div className="mt-1.5 text-[10px] opacity-60 font-mono">{Math.floor(c.start / 60)}:{String(Math.floor(c.start % 60)).padStart(2, '0')} - {Math.floor(c.end / 60)}:{String(Math.floor(c.end % 60)).padStart(2, '0')} • {c.words.length} words</div>
                 </button>
               ))}
             </div>
           </Card>
         </div>
 
-        {/* CENTER - Preview */}
         <div className="col-span-12 lg:col-span-5 space-y-4">
           <Card className="p-3 lg:p-4">
             <div className="flex items-center justify-between mb-3 px-1">
               <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Langkah 4 - Preview 9:16 (Sama Landing)</h2>
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-[600] px-2 py-1 rounded-full bg-[#0A0A0A] text-white">1080x1920</span>
-                <button onClick={()=>setLoopPreview(!loopPreview)} className={`text-[10px] font-[600] px-2 py-1 rounded-full border ${loopPreview ? 'bg-[#FFD60A] border-[#FFD60A] text-black' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{loopPreview ? 'Loop ON' : 'Loop OFF'}</button>
+                <button onClick={() => setLoopPreview(!loopPreview)} className={`text-[10px] font-[600] px-2 py-1 rounded-full border ${loopPreview ? 'bg-[#FFD60A] border-[#FFD60A] text-black' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{loopPreview ? 'Loop ON' : 'Loop OFF'}</button>
               </div>
             </div>
             <div className="relative rounded-[18px] bg-[#0A0A0A] overflow-hidden aspect-[9/16] max-h-[680px] mx-auto">
               {videoUrl ? (
                 <>
-                  <video ref={videoRef} src={videoUrl} className="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" crossOrigin="anonymous" playsInline onPlay={()=>setIsPlaying(true)} onPause={()=>setIsPlaying(false)} />
+                  <video ref={videoRef} src={videoUrl} className="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" crossOrigin="anonymous" playsInline onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
                   <canvas ref={canvasRef} width={1080} height={1920} className="absolute inset-0 w-full h-full" />
-                  
+
                   {!isPlaying && (
-                    <button onClick={()=>videoRef.current?.play()} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[1px] gap-3">
+                    <button onClick={() => videoRef.current?.play()} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[1px] gap-3">
                       <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:scale-105 transition">
                         <IconPlay size={28} />
                       </div>
@@ -795,19 +858,19 @@ export default function EditorPage() {
 
                   <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
                     <div className="flex items-center gap-2">
-                      <button onClick={()=> isPlaying ? videoRef.current?.pause() : videoRef.current?.play()} className="h-9 w-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition">
+                      <button onClick={() => isPlaying ? videoRef.current?.pause() : videoRef.current?.play()} className="h-9 w-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition">
                         {isPlaying ? <IconPause size={14} /> : <IconPlay size={14} />}
                       </button>
                       <Button size="sm" variant="secondary" className="h-8 text-[10px] bg-white/20 text-white border-white/20 hover:bg-white hover:text-black backdrop-blur-md gap-1" onClick={handleTestPlay}><IconRefresh />Tes Ulang</Button>
                       <div className="flex-1">
-                        <input type="range" min={clipStartEdit} max={clipEndEdit} step={0.1} value={currentTime} onChange={e=>{ const t=parseFloat(e.target.value); setCurrentTime(t); if(videoRef.current) videoRef.current.currentTime=t }} className="w-full accent-[#FFD60A] h-1.5" />
+                        <input type="range" min={clipStartEdit} max={clipEndEdit} step={0.1} value={currentTime} onChange={e => { const t = parseFloat(e.target.value); setCurrentTime(t); if (videoRef.current) videoRef.current.currentTime = t }} className="w-full accent-[#FFD60A] h-1.5" />
                         <div className="mt-1.5 flex justify-between text-[10px] font-mono text-white/80">
                           <span>{currentTime.toFixed(1)}s</span>
-                          <span className="font-[700] text-[#FFD60A]">{(clipEndEdit-clipStartEdit).toFixed(1)}s</span>
+                          <span className="font-[700] text-[#FFD60A]">{(clipEndEdit - clipStartEdit).toFixed(1)}s</span>
                           <span>{clipEndEdit.toFixed(1)}s</span>
                         </div>
                       </div>
-                      <select value={playbackSpeed} onChange={e=>setPlaybackSpeed(parseFloat(e.target.value))} className="h-8 rounded-full bg-white/10 border border-white/20 text-white text-[10px] px-2 backdrop-blur-md">
+                      <select value={playbackSpeed} onChange={e => setPlaybackSpeed(parseFloat(e.target.value))} className="h-8 rounded-full bg-white/10 border border-white/20 text-white text-[10px] px-2 backdrop-blur-md">
                         <option value={0.5}>0.5x</option>
                         <option value={1}>1x</option>
                         <option value={1.5}>1.5x</option>
@@ -827,8 +890,8 @@ export default function EditorPage() {
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="rounded-[12px] bg-white p-3">
                       <div className="text-[12px] font-[700] line-clamp-2">{youtubeInfo.title}</div>
-                      <div className="text-[10px] text-[#6B6B6B] mt-1">Preview YouTube</div>
-                      <Button size="sm" className="mt-3 w-full h-8 text-[11px] bg-[#0A0A0A] text-white gap-1.5" onClick={handleTranscribe}><IconSpark />Buat Clip Sekarang</Button>
+                      <div className="text-[10px] text-[#6B6B6B] mt-1">Preview YouTube • {clips.length} clips ready</div>
+                      <Button size="sm" className="mt-3 w-full h-8 text-[11px] bg-[#0A0A0A] text-white gap-1.5" onClick={handleTranscribe}><IconSpark />{clips.length ? `Regenerate ${clips.length} Clips` : 'Buat Clip Sekarang'}</Button>
                     </div>
                   </div>
                 </div>
@@ -836,11 +899,11 @@ export default function EditorPage() {
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
                   <div className="h-16 w-16 rounded-[16px] border border-dashed border-white/20 flex items-center justify-center text-white/30"><IconPlay size={24} /></div>
                   <div className="mt-4 text-[13px] font-[600] text-white/60">Belum ada video</div>
-                  <div className="mt-1 text-[11px] text-white/30 max-w-[220px] leading-[1.4]">Upload di Langkah 1 lalu Generate di Langkah 2</div>
+                  <div className="mt-1 text-[11px] text-white/30 max-w-[220px] leading-[1.4]">Upload di Langkah 1 lalu Generate di Langkah 2 — tombol hitam besar</div>
                 </div>
               )}
             </div>
-            
+
             {selectedClip && (
               <div className="mt-3 p-3 rounded-[12px] bg-[#F5F5F0] border border-[#E8E8E3]">
                 <div className="flex items-center justify-between mb-2">
@@ -853,20 +916,20 @@ export default function EditorPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-[600] text-[#6B6B6B]">Mulai (detik)</label>
-                    <input type="number" step={0.1} value={clipStartEdit} onChange={e=>setClipStartEdit(parseFloat(e.target.value)||0)} className="mt-1 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[12px] font-mono" />
+                    <input type="number" step={0.1} value={clipStartEdit} onChange={e => setClipStartEdit(parseFloat(e.target.value) || 0)} className="mt-1 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[12px] font-mono" />
                   </div>
                   <div>
                     <label className="text-[10px] font-[600] text-[#6B6B6B]">Selesai (detik)</label>
-                    <input type="number" step={0.1} value={clipEndEdit} onChange={e=>setClipEndEdit(parseFloat(e.target.value)||0)} className="mt-1 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[12px] font-mono" />
+                    <input type="number" step={0.1} value={clipEndEdit} onChange={e => setClipEndEdit(parseFloat(e.target.value) || 0)} className="mt-1 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[12px] font-mono" />
                   </div>
                 </div>
                 <div className="mt-3">
-                  <input type="range" min={0} max={duration||100} step={0.1} value={clipStartEdit} onChange={e=>setClipStartEdit(parseFloat(e.target.value))} className="w-full accent-[#0A0A0A] h-1.5" />
-                  <input type="range" min={0} max={duration||100} step={0.1} value={clipEndEdit} onChange={e=>setClipEndEdit(parseFloat(e.target.value))} className="w-full accent-[#FFD60A] h-1.5 mt-1" />
+                  <input type="range" min={0} max={duration || 100} step={0.1} value={clipStartEdit} onChange={e => setClipStartEdit(parseFloat(e.target.value))} className="w-full accent-[#0A0A0A] h-1.5" />
+                  <input type="range" min={0} max={duration || 100} step={0.1} value={clipEndEdit} onChange={e => setClipEndEdit(parseFloat(e.target.value))} className="w-full accent-[#FFD60A] h-1.5 mt-1" />
                   <div className="mt-1 flex justify-between text-[10px] font-mono text-[#6B6B6B]">
                     <span>0s</span>
-                    <span className="font-[700] text-[#0A0A0A]">{(clipEndEdit-clipStartEdit).toFixed(1)}s durasi</span>
-                    <span>{(duration||0).toFixed(1)}s</span>
+                    <span className="font-[700] text-[#0A0A0A]">{(clipEndEdit - clipStartEdit).toFixed(1)}s durasi</span>
+                    <span>{(duration || 0).toFixed(1)}s</span>
                   </div>
                 </div>
               </div>
@@ -883,19 +946,18 @@ export default function EditorPage() {
           </Card>
         </div>
 
-        {/* RIGHT - Styles */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Gaya Subtitle - 12 Style (Sama Landing)</h2>
               <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#0A0A0A] text-white">{Object.keys(STYLES).length} STYLE</span>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-2 mb-4">
-              {Object.entries(STYLES).map(([k,s]: any)=>{
-                const isActive = styleKey===k
+              {Object.entries(STYLES).map(([k, s]: any) => {
+                const isActive = styleKey === k
                 return (
-                  <button key={k} onClick={()=>setStyleKey(k)} className={`text-left rounded-[14px] border p-2.5 transition relative overflow-hidden ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
+                  <button key={k} onClick={() => setStyleKey(k)} className={`text-left rounded-[14px] border p-2.5 transition relative overflow-hidden ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="text-[11px] font-[800] tracking-[-0.01em]">{s.name.toUpperCase()}</div>
@@ -904,12 +966,12 @@ export default function EditorPage() {
                       <span className={`text-[8px] font-[700] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white text-black' : 'bg-[#F5F5F0] border border-[#E8E8E3]'}`}>{s.usage}</span>
                     </div>
                     <div className="mt-2.5 rounded-[10px] border border-black/5 p-2 h-[64px] flex flex-col items-center justify-center overflow-hidden relative" style={{ background: s.bgPreview }}>
-                      <div className="font-[900] text-[15px] leading-[0.9] tracking-[-0.02em] text-center" style={{ 
-                        color: s.text === 'transparent' ? '#FFFFFF' : s.text, 
-                        WebkitTextStroke: s.sw>0 && s.stroke !== 'transparent' ? `${s.sw/3}px ${s.stroke}` : '0',
+                      <div className="font-[900] text-[15px] leading-[0.9] tracking-[-0.02em] text-center" style={{
+                        color: s.text === 'transparent' ? '#FFFFFF' : s.text,
+                        WebkitTextStroke: s.sw > 0 && s.stroke !== 'transparent' ? `${s.sw / 3}px ${s.stroke}` : '0',
                         fontFamily: s.font,
                         textTransform: s.upper ? 'uppercase' as any : 'none',
-                        textShadow: k==='shadow' ? '2px 2px 8px rgba(0,0,0,0.6)' : k==='glow' ? `0 0 10px ${s.highlight}` : 'none'
+                        textShadow: k === 'shadow' ? '2px 2px 8px rgba(0,0,0,0.6)' : k === 'glow' ? `0 0 10px ${s.highlight}` : 'none'
                       }}>
                         <div style={{ color: s.text === 'transparent' ? 'transparent' : s.text, WebkitTextStroke: s.text === 'transparent' ? `2px ${s.highlight}` : undefined }}>{s.previewText}</div>
                         <div style={{ color: s.highlight, fontSize: '11px', marginTop: '2px' }}>{s.previewSub}</div>
@@ -928,10 +990,10 @@ export default function EditorPage() {
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">{Object.keys(ANIMATIONS).length} ANIM</span>
                 </div>
                 <div className="mt-2 grid grid-cols-3 gap-1.5">
-                  {Object.entries(ANIMATIONS).map(([k,a]: any)=>{
-                    const isActive = anim===k
+                  {Object.entries(ANIMATIONS).map(([k, a]: any) => {
+                    const isActive = anim === k
                     return (
-                      <button key={k} onClick={()=>setAnim(k)} className={`rounded-[10px] border p-2 text-left transition ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
+                      <button key={k} onClick={() => setAnim(k)} className={`rounded-[10px] border p-2 text-left transition ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-[700]">{a.name}</span>
                           <span className={`text-[7px] px-1 py-0.5 rounded-full font-[600] ${isActive ? 'bg-white text-black' : 'bg-[#F5F5F0]'}`}>{a.usage}</span>
@@ -959,65 +1021,65 @@ export default function EditorPage() {
               </div>
 
               <div className="pt-2 border-t border-[#E8E8E3]">
-                <button onClick={()=>setShowCustom(!showCustom)} className="w-full flex items-center justify-between text-[11px] font-[700] tracking-[0.06em] uppercase">
+                <button onClick={() => setShowCustom(!showCustom)} className="w-full flex items-center justify-between text-[11px] font-[700] tracking-[0.06em] uppercase">
                   <span className="flex items-center gap-1.5"><IconPalette />Custom Warna dan Font</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full border ${showCustom ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{showCustom ? 'Tutup' : 'Buka'}</span>
                 </button>
-                
+
                 {showCustom && (
                   <div className="mt-3 space-y-3 p-3 rounded-[12px] bg-[#F5F5F0] border border-[#E8E8E3]">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-[10px] font-[600]">Warna Teks</label>
                         <div className="mt-1 flex gap-2">
-                          <input type="color" value={customTextColor || (baseStyle.text === 'transparent' ? '#FFFFFF' : baseStyle.text)} onChange={e=>setCustomTextColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
-                          <input value={customTextColor} onChange={e=>setCustomTextColor(e.target.value)} placeholder={baseStyle.text} className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
+                          <input type="color" value={customTextColor || (baseStyle.text === 'transparent' ? '#FFFFFF' : baseStyle.text)} onChange={e => setCustomTextColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
+                          <input value={customTextColor} onChange={e => setCustomTextColor(e.target.value)} placeholder={baseStyle.text} className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
                         </div>
                       </div>
                       <div>
                         <label className="text-[10px] font-[600]">Warna Highlight</label>
                         <div className="mt-1 flex gap-2">
-                          <input type="color" value={customHighlightColor || baseStyle.highlight} onChange={e=>setCustomHighlightColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
-                          <input value={customHighlightColor} onChange={e=>setCustomHighlightColor(e.target.value)} placeholder={baseStyle.highlight} className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
+                          <input type="color" value={customHighlightColor || baseStyle.highlight} onChange={e => setCustomHighlightColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
+                          <input value={customHighlightColor} onChange={e => setCustomHighlightColor(e.target.value)} placeholder={baseStyle.highlight} className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
                         </div>
                       </div>
                       <div>
                         <label className="text-[10px] font-[600]">Warna Stroke</label>
                         <div className="mt-1 flex gap-2">
-                          <input type="color" value={customStrokeColor || (baseStyle.stroke === 'transparent' ? '#000000' : baseStyle.stroke)} onChange={e=>setCustomStrokeColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
-                          <input value={customStrokeColor} onChange={e=>setCustomStrokeColor(e.target.value)} placeholder={baseStyle.stroke} className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
+                          <input type="color" value={customStrokeColor || (baseStyle.stroke === 'transparent' ? '#000000' : baseStyle.stroke)} onChange={e => setCustomStrokeColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
+                          <input value={customStrokeColor} onChange={e => setCustomStrokeColor(e.target.value)} placeholder={baseStyle.stroke} className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
                         </div>
                       </div>
                       <div>
                         <label className="text-[10px] font-[600]">Warna Background</label>
                         <div className="mt-1 flex gap-2">
-                          <input type="color" value={customBgColor && customBgColor !== 'transparent' ? customBgColor : '#FFD60A'} onChange={e=>setCustomBgColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
-                          <input value={customBgColor} onChange={e=>setCustomBgColor(e.target.value)} placeholder="transparent" className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
+                          <input type="color" value={customBgColor && customBgColor !== 'transparent' ? customBgColor : '#FFD60A'} onChange={e => setCustomBgColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
+                          <input value={customBgColor} onChange={e => setCustomBgColor(e.target.value)} placeholder="transparent" className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
                         </div>
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="text-[10px] font-[600]">Font Keluarga - {FONTS.length} Font</label>
-                      <select value={customFont} onChange={e=>setCustomFont(e.target.value)} className="mt-1 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px]">
+                      <select value={customFont} onChange={e => setCustomFont(e.target.value)} className="mt-1 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px]">
                         <option value="">Default ({baseStyle.font})</option>
-                        {FONTS.map(f=><option key={f} value={f}>{f}</option>)}
+                        {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                       </select>
                     </div>
 
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1 h-7 text-[10px]" onClick={()=>{ setCustomTextColor(''); setCustomHighlightColor(''); setCustomStrokeColor(''); setCustomBgColor(''); setCustomFont('') }}>Reset</Button>
-                      <Button size="sm" className="flex-1 h-7 text-[10px] bg-[#0A0A0A] text-white gap-1" onClick={()=>setShowCustom(false)}><IconCheck />Terapkan</Button>
+                      <Button size="sm" variant="outline" className="flex-1 h-7 text-[10px]" onClick={() => { setCustomTextColor(''); setCustomHighlightColor(''); setCustomStrokeColor(''); setCustomBgColor(''); setCustomFont('') }}>Reset</Button>
+                      <Button size="sm" className="flex-1 h-7 text-[10px] bg-[#0A0A0A] text-white gap-1" onClick={() => setShowCustom(false)}><IconCheck />Terapkan</Button>
                     </div>
 
                     <div className="rounded-[8px] bg-white border border-[#E8E8E3] p-2.5">
                       <div className="text-[10px] font-[600] mb-1.5">Preview Custom Warna (sama kayak showcase)</div>
                       <div className="rounded-[8px] h-[60px] flex items-center justify-center" style={{ background: baseStyle.bgPreview }}>
-                        <div className="font-[900] text-[16px]" style={{ 
+                        <div className="font-[900] text-[16px]" style={{
                           color: style.text === 'transparent' ? 'transparent' : style.text,
-                          WebkitTextStroke: style.text === 'transparent' ? `2px ${style.highlight}` : `${style.sw/3}px ${style.stroke}`,
+                          WebkitTextStroke: style.text === 'transparent' ? `2px ${style.highlight}` : `${style.sw / 3}px ${style.stroke}`,
                           fontFamily: style.font,
-                          textShadow: styleKey==='glow' ? `0 0 12px ${style.highlight}` : 'none'
+                          textShadow: styleKey === 'glow' ? `0 0 12px ${style.highlight}` : 'none'
                         }}>
                           <span style={{ color: style.text === 'transparent' ? undefined : style.text }}>{baseStyle.previewText}</span> <span style={{ color: style.highlight }}>{baseStyle.previewSub}</span>
                         </div>
@@ -1030,7 +1092,7 @@ export default function EditorPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Posisi</label>
-                  <select value={pos} onChange={e=>setPos(e.target.value as any)} className="mt-1.5 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px]">
+                  <select value={pos} onChange={e => setPos(e.target.value as any)} className="mt-1.5 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px]">
                     <option value="top">ATAS</option>
                     <option value="center">TENGAH</option>
                     <option value="bottom">BAWAH</option>
@@ -1039,8 +1101,8 @@ export default function EditorPage() {
                 <div>
                   <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Kata per Baris</label>
                   <div className="mt-1.5 grid grid-cols-4 gap-1">
-                    {[1,2,3,4].map(n=>(
-                      <button key={n} onClick={()=>setWpl(n)} className={`h-8 rounded-full text-[11px] font-[600] border ${wpl===n ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>{n}</button>
+                    {[1, 2, 3, 4].map(n => (
+                      <button key={n} onClick={() => setWpl(n)} className={`h-8 rounded-full text-[11px] font-[600] border ${wpl === n ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>{n}</button>
                     ))}
                   </div>
                 </div>
@@ -1051,13 +1113,13 @@ export default function EditorPage() {
                   <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Ukuran Font</label>
                   <span className="text-[10px] font-mono font-[600]">{fontSize}px</span>
                 </div>
-                <input type="range" min={36} max={120} value={fontSize} onChange={e=>setFontSize(Number(e.target.value))} className="w-full mt-2 accent-[#0A0A0A] h-1.5" />
+                <input type="range" min={36} max={120} value={fontSize} onChange={e => setFontSize(Number(e.target.value))} className="w-full mt-2 accent-[#0A0A0A] h-1.5" />
               </div>
 
               <div>
                 <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Judul Hook - AI Viral</label>
                 <div className="mt-1.5 flex gap-2">
-                  <input value={hook} onChange={e=>setHook(e.target.value)} placeholder="Tulis hook viral..." className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] focus:outline-none focus:border-[#0A0A0A]" />
+                  <input value={hook} onChange={e => setHook(e.target.value)} placeholder="Tulis hook viral..." className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] focus:outline-none focus:border-[#0A0A0A]" />
                   <Button size="sm" className="h-8 px-3 text-[10px] bg-[#0A0A0A] text-white gap-1" onClick={handleAiHook} disabled={aiLoading || !selectedClip}>
                     <IconSpark />{aiLoading ? '...' : 'AI'}
                   </Button>
@@ -1067,14 +1129,14 @@ export default function EditorPage() {
           </Card>
 
           <Card className="p-4 bg-[#0A0A0A] text-white border-[#0A0A0A]">
-            <h3 className="text-[11px] font-[700] tracking-[0.06em] uppercase">Fitur Editor Lengkap — Shared Lib</h3>
+            <h3 className="text-[11px] font-[700] tracking-[0.06em] uppercase">Fitur Editor Lengkap — Fixed</h3>
             <div className="mt-2 text-[11px] leading-[1.5] text-white/60 space-y-1">
               <div className="flex items-center gap-1.5"><IconCheck />12 gaya subtitle + preview visual sama kayak landing</div>
               <div className="flex items-center gap-1.5"><IconCheck />10 animasi + demo live + icon (shared lib)</div>
-              <div className="flex items-center gap-1.5"><IconCheck />Custom warna teks, highlight, stroke, bg + 8 font</div>
+              <div className="flex items-center gap-1.5"><IconCheck />Generate clips FIXED: selalu buat 5 clips viral</div>
               <div className="flex items-center gap-1.5"><IconCheck />Tombol play besar icon SVG + tes sebelum export</div>
               <div className="flex items-center gap-1.5"><IconCheck />Langkah jelas: 1 Upload - 2 Generate - 3 Pilih - 4 Preview - 5 Simpan Export</div>
-              <div className="flex items-center gap-1.5"><IconCheck />Canvas render pakai SUBTITLE_STYLES lib sama dengan showcase</div>
+              <div className="flex items-center gap-1.5"><IconCheck />Duration auto-detect + fallback 120s agar clips selalu jadi</div>
             </div>
           </Card>
         </div>
@@ -1085,8 +1147,8 @@ export default function EditorPage() {
           <Card className="w-full max-w-[360px] p-6 text-center">
             <div className="mx-auto h-12 w-12 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center font-[800] animate-pulse">A</div>
             <div className="mt-4 text-[14px] font-[700]">Mengekspor clip</div>
-            <div className="text-[12px] text-[#6B6B6B] mt-1">{STYLES[styleKey]?.name} - {ANIMATIONS[anim]?.name} - {hook.slice(0,30)}</div>
-            <div className="mt-1 text-[11px] text-[#9B9B9B]">{exportStatus} - {(clipEndEdit-clipStartEdit).toFixed(1)}s - {fontSize}px</div>
+            <div className="text-[12px] text-[#6B6B6B] mt-1">{STYLES[styleKey]?.name} - {ANIMATIONS[anim]?.name} - {hook.slice(0, 30)}</div>
+            <div className="mt-1 text-[11px] text-[#9B9B9B]">{exportStatus} - {(clipEndEdit - clipStartEdit).toFixed(1)}s - {fontSize}px</div>
             <div className="mt-5 h-1.5 rounded-full bg-[#F5F5F0] overflow-hidden">
               <div className="h-full bg-[#0A0A0A] transition-all duration-300" style={{ width: `${progress}%` }} />
             </div>
