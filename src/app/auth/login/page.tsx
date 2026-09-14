@@ -1,45 +1,44 @@
 "use client"
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
+
+const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'https://autoclipp-auth.akuntiktok76y.workers.dev'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleGoogleLogin = async () => {
-    setLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-    if (error) {
-      alert(error.message)
-      setLoading(false)
-    }
+  const handleGoogleLogin = () => {
+    window.location.href = `${AUTH_URL}/auth/google`
   }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-    if (error) {
-      alert(error.message)
-    } else {
+    setError('')
+    
+    try {
+      const res = await fetch(`${AUTH_URL}/auth/email/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email })
+      })
+      
+      const data = await res.json()
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send email')
+      }
+      
       setSent(true)
+    } catch (err: any) {
+      setError(err.message)
     }
     setLoading(false)
   }
@@ -76,7 +75,8 @@ export default function LoginPage() {
           {sent ? (
             <div className="rounded-[12px] bg-[#F5F5F0] border border-[#E8E8E3] p-4 text-center">
               <div className="text-[13px] font-[600]">Check your email</div>
-              <div className="text-[11px] text-[#6B6B6B] mt-1">We sent a magic link to {email}</div>
+              <div className="text-[11px] text-[#6B6B6B] mt-1">We sent a verification link to {email}. Link expires in 15 minutes.</div>
+              <div className="mt-3 text-[11px] text-[#9B9B9B]">Email must be verified to continue. Check spam folder if not found.</div>
             </div>
           ) : (
             <form onSubmit={handleEmailLogin} className="space-y-3">
@@ -88,19 +88,26 @@ export default function LoginPage() {
                 placeholder="you@company.com"
                 className="w-full h-11 rounded-full border border-[#E8E8E3] bg-white px-4 text-[13px] placeholder:text-[#9B9B9B] focus:outline-none focus:border-[#0A0A0A]"
               />
+              {error && <div className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-full px-3 py-2">{error}</div>}
               <Button type="submit" disabled={loading} className="w-full h-11">
-                {loading ? 'Sending...' : 'Send magic link'}
+                {loading ? 'Sending...' : 'Send verification link'}
               </Button>
+              <div className="text-[11px] text-[#9B9B9B] text-center">Email verification required. We will send a secure link.</div>
             </form>
           )}
 
           <div className="mt-6 text-center text-[11px] text-[#9B9B9B] leading-[1.5]">
-            By continuing, you agree to our Terms and Privacy Policy. No credit card required.
+            By continuing, you agree to our Terms and Privacy Policy. Email must be verified.
           </div>
         </Card>
 
         <div className="mt-6 text-center">
           <Link href="/" className="text-[12px] font-[500] text-[#6B6B6B] hover:text-[#0A0A0A]">← Back to home</Link>
+        </div>
+
+        <div className="mt-8 rounded-[12px] bg-[#0A0A0A] text-white p-4 text-[11px] leading-[1.5]">
+          <div className="font-[600]">Cloudflare Auth Backend</div>
+          <div className="text-white/60 mt-1">Secure JWT, D1 database, Resend email verification, Google OAuth. All tokens server-side, optimized for edge.</div>
         </div>
       </div>
     </div>
