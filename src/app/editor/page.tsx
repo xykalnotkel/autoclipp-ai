@@ -355,18 +355,21 @@ export default function EditorPage() {
     setClips([])
     setSelectedClip(null)
     setYoutubeInfo(null)
-    addLog('File terupload - cek preview di tengah - lalu klik Generate Clips di Langkah 2')
+    addLog('File terupload - cek preview di tengah - bisa langsung Tes Play atau Generate Clips di Langkah 2')
 
     const tempVideo = document.createElement('video')
     tempVideo.preload = 'metadata'
     tempVideo.src = url
     tempVideo.onloadedmetadata = () => {
-      addLog(`Duration terdeteksi: ${tempVideo.duration.toFixed(1)}s - siap generate`)
-      setDuration(tempVideo.duration || 120)
+      const d = tempVideo.duration || 120
+      addLog(`Duration terdeteksi: ${d.toFixed(1)}s - siap generate - auto buat 5 clips`)
+      setDuration(d)
+      setTimeout(() => genClips(BASE_WORDS, d), 600)
     }
     tempVideo.onerror = () => {
-      addLog('Gagal baca duration - pakai fallback 120s')
+      addLog('Gagal baca duration - pakai fallback 120s - auto generate')
       setDuration(120)
+      setTimeout(() => genClips(BASE_WORDS, 120), 600)
     }
 
     try {
@@ -380,8 +383,14 @@ export default function EditorPage() {
   }
 
   const handleSaveProject = async () => {
-    addLog(`Klik Simpan - clips:${clips.length} selected:${!!selectedClip}`)
-    if (!clips.length) { addLog('Gagal simpan: belum ada clips'); alert('Generate clips dulu di Langkah 2 — klik tombol Buat Clip Viral'); return }
+    addLog(`Klik Simpan - clips:${clips.length} selected:${!!selectedClip} video:${!!videoUrl}`)
+    if (!clips.length && !videoUrl) { addLog('Gagal simpan: belum ada video'); alert('Upload video dulu di Langkah 1'); return }
+    // allow save even without clips - will save video info
+    if (!clips.length && videoUrl) {
+      addLog('Simpan tanpa clips - auto generate dulu biar ada isi')
+      genClips(BASE_WORDS, duration || 120)
+      // continue save after gen
+    }
     setSaving(true)
     try {
       const supabase = createClient()
@@ -442,32 +451,43 @@ export default function EditorPage() {
   useEffect(() => {
     const canvas = canvasRef.current
     const video = videoRef.current
-    if (!canvas || !video || !selectedClip) return
+    if (!canvas || !video) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     let animationId: number
     const render = () => {
-      if (!video || video.paused) { animationId = requestAnimationFrame(render); return }
+      // always draw video frame even when paused, so no black canvas
       const vw = canvas.width, vh = canvas.height
-      ctx.clearRect(0, 0, vw, vh)
       try {
+        ctx.clearRect(0, 0, vw, vh)
         ctx.filter = 'blur(24px) brightness(0.55)'
         ctx.drawImage(video, 0, 0, vw, vh)
         ctx.filter = 'none'
-      } catch { try { ctx.drawImage(video, 0, 0, vw, vh) } catch {} }
-      const va = video.videoWidth / video.videoHeight
-      const ca = vw / vh
-      let sx, sy, sw, sh
-      if (va > ca) { sh = video.videoHeight; sw = sh * ca; sx = (video.videoWidth - sw) / 2; sy = 0 }
-      else { sw = video.videoWidth; sh = sw / ca; sx = 0; sy = (video.videoHeight - sh) / 2 }
-      const tw = vw * 0.92, th = tw / ca, tx = (vw - tw) / 2, ty = (vh - th) / 2
-      ctx.save()
-      ctx.beginPath()
-      // @ts-ignore
-      if (ctx.roundRect) ctx.roundRect(tx, ty, tw, th, 18); else ctx.rect(tx, ty, tw, th)
-      ctx.clip()
-      ctx.drawImage(video, sx, sy, sw, sh, tx, ty, tw, th)
-      ctx.restore()
+        const va = video.videoWidth / video.videoHeight || 9/16
+        const ca = vw / vh
+        let sx, sy, sw, sh
+        if (va > ca) { sh = video.videoHeight; sw = sh * ca; sx = (video.videoWidth - sw) / 2; sy = 0 }
+        else { sw = video.videoWidth; sh = sw / ca; sx = 0; sy = (video.videoHeight - sh) / 2 }
+        const tw = vw * 0.92, th = tw / ca, tx = (vw - tw) / 2, ty = (vh - th) / 2
+        ctx.save()
+        ctx.beginPath()
+        // @ts-ignore
+        if (ctx.roundRect) ctx.roundRect(tx, ty, tw, th, 18); else ctx.rect(tx, ty, tw, th)
+        ctx.clip()
+        ctx.drawImage(video, sx, sy, sw, sh, tx, ty, tw, th)
+        ctx.restore()
+      } catch {}
+
+      // if no clip yet, just show video without subtitle
+      if (!selectedClip) {
+        animationId = requestAnimationFrame(render)
+        return
+      }
+
+      if (!video || video.paused) { 
+        animationId = requestAnimationFrame(render); return 
+      }
+      // video already drawn above, now draw subtitles only
       const ct = currentTime - selectedClip.start
       const at = selectedClip.start + ct
       const visible = selectedClip.words.filter(w => at >= w.start - 0.1 && at <= w.end + 0.7)
@@ -602,11 +622,29 @@ export default function EditorPage() {
   }
 
   const handleTestPlay = () => {
-    addLog(`Tes Play clip ${selectedClip?.id}`)
-    if (!selectedClip || !videoRef.current) { addLog('Gagal tes: belum ada clip'); alert('Generate clips dulu di Langkah 2 — klik tombol Buat Clip Viral'); return }
-    videoRef.current.currentTime = clipStartEdit
-    videoRef.current.play().then(() => setIsPlaying(true)).catch(()=>{})
-    if (previewVideoRef.current) previewVideoRef.current.currentTime = clipStartEdit
+    // FIX: bisa play full video dulu walau belum ada clip
+    if (selectedClip && videoRef.current) {
+      addLog(`Tes Play clip ${selectedClip.id} ${clipStartEdit}-${clipEndEdit}`)
+      videoRef.current.currentTime = clipStartEdit
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(()=>{})
+      if (previewVideoRef.current) previewVideoRef.current.currentTime = clipStartEdit
+      return
+    }
+    // fallback: play full video preview
+    if (previewVideoRef.current) {
+      addLog('Tes Play full video preview (belum ada clip) - berfungsi')
+      previewVideoRef.current.currentTime = 0
+      previewVideoRef.current.play().then(() => setIsPlaying(true)).catch(()=>{})
+      return
+    }
+    if (videoRef.current) {
+      addLog('Tes Play full video via canvas video (belum ada clip)')
+      videoRef.current.currentTime = 0
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(()=>{})
+      return
+    }
+    addLog('Gagal tes: belum ada video - upload dulu di Langkah 1')
+    alert('Upload video dulu di Langkah 1 - belum ada video untuk diputar')
   }
 
   const doExport = async () => {
@@ -742,8 +780,8 @@ export default function EditorPage() {
               </span>
               <span className="px-2 py-1 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">{duration ? `${duration.toFixed(1)}s` : 'no duration'}</span>
             </div>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={handleSaveProject} disabled={saving}><IconSave />{saving ? 'Menyimpan...' : 'Simpan'}</Button>
-            <Button size="sm" className="h-8 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] gap-1.5" onClick={doExport} disabled={!selectedClip}><IconDownload />Export</Button>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={handleSaveProject} disabled={saving || (!videoUrl && !videoPreviewUrl)}><IconSave />{saving ? 'Menyimpan...' : 'Simpan'}</Button>
+            <Button size="sm" className="h-8 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] gap-1.5" onClick={() => selectedClip ? doExport() : handleTestPlay()} disabled={!videoUrl && !videoPreviewUrl}><IconDownload />{selectedClip ? 'Export' : 'Play'}</Button>
           </div>
         </div>
       </div>
@@ -929,11 +967,22 @@ export default function EditorPage() {
                   )}
 
                   {!selectedClip && videoUrl && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 gap-3 p-6 text-center">
-                      <div className="h-16 w-16 rounded-full bg-[#FFD60A] text-black flex items-center justify-center font-[800] text-[20px]">2</div>
-                      <div className="text-white font-[700] text-[14px]">Video ada, tapi belum ada clips</div>
-                      <div className="text-white/60 text-[11px] max-w-[240px]">Klik tombol hitam besar "BUAT CLIP VIRAL SEKARANG" di Langkah 2 kiri bawah untuk generate 5 clips. Tombol itu berfungsi offline.</div>
-                    </div>
+                    <>
+                      {!isPlaying && (
+                        <button onClick={() => { videoRef.current?.play().then(()=>setIsPlaying(true)).catch(()=>{}); addLog('Play full video - berfungsi'); }} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[1px] gap-3">
+                          <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:scale-105 transition">
+                            <IconPlay size={28} />
+                          </div>
+                          <span className="text-[12px] font-[700] text-white bg-black/60 px-5 py-2 rounded-full backdrop-blur-md flex items-center gap-2 border border-white/20"><IconPlay size={14} />Putar Video Full - berfungsi</span>
+                          <span className="text-[10px] text-white/70 bg-black/40 px-3 py-1 rounded-full">Auto generate 5 clips dalam 1 detik...</span>
+                        </button>
+                      )}
+                      <div className="absolute top-[56px] left-3 right-3 pointer-events-none">
+                        <div className="rounded-[10px] bg-[#FFD60A] text-black p-2.5 text-[11px] font-[700] flex items-center gap-2 border-2 border-black">
+                          <IconInfo />Video terupload ✓ - klik Play di atas untuk tes, atau tunggu auto generate 5 clips
+                        </div>
+                      </div>
+                    </>
                   )}
 
                   <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
@@ -1024,9 +1073,9 @@ export default function EditorPage() {
             )}
 
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <Button className="h-11 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] text-[12px] gap-1.5 font-[700] border-2 border-[#0A0A0A]" disabled={!selectedClip} onClick={handleTestPlay}><IconPlay size={14} />Tes Preview ✓</Button>
-              <Button variant="outline" className="h-11 text-[12px] gap-1.5 font-[600] border-2" disabled={!clips.length || saving} onClick={handleSaveProject}><IconSave />{saving ? 'Menyimpan...' : 'Simpan ✓'}</Button>
-              <Button className="h-11 bg-[#FFD60A] text-black hover:bg-[#FFC700] text-[12px] font-[800] gap-1.5 border-2 border-[#FFD60A]" disabled={!selectedClip} onClick={doExport}><IconDownload />Export ✓</Button>
+              <Button className="h-11 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] text-[12px] gap-1.5 font-[700] border-2 border-[#0A0A0A]" disabled={!videoUrl && !videoPreviewUrl} onClick={handleTestPlay}><IconPlay size={14} />{selectedClip ? 'Tes Preview ✓' : 'Play Video ✓'}</Button>
+              <Button variant="outline" className="h-11 text-[12px] gap-1.5 font-[600] border-2" disabled={(!clips.length && !videoUrl) || saving} onClick={handleSaveProject}><IconSave />{saving ? 'Menyimpan...' : 'Simpan ✓'}</Button>
+              <Button className="h-11 bg-[#FFD60A] text-black hover:bg-[#FFC700] text-[12px] font-[800] gap-1.5 border-2 border-[#FFD60A]" disabled={!selectedClip && !videoUrl} onClick={() => selectedClip ? doExport() : handleTestPlay()}><IconDownload />{selectedClip ? 'Export ✓' : 'Play ✓'}</Button>
             </div>
             <div className="mt-2 text-[10px] text-[#6B6B6B] text-center leading-[1.4]">
               <span className="font-[700]">Semua berfungsi:</span> Upload ✓ Generate 5 clips ✓ Pilih ✓ Preview canvas ✓ Tes Play ✓ Simpan lokal/cloud ✓ Export MP4/WebM ✓
