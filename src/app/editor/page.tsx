@@ -781,10 +781,41 @@ export default function EditorPage() {
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button className="h-10" disabled={!selectedClip} onClick={doExport}>Export Clip (FFmpeg)</Button>
-              <Button variant="outline" className="h-10" disabled={clips.length===0} onClick={()=>{
-                // Bulk export - export all clips one by one
-                alert(`Bulk export ${clips.length} clips akan segera tersedia dengan FFmpeg batch`)
-              }}>Bulk Export</Button>
+              <Button variant="outline" className="h-10" disabled={clips.length===0} onClick={async ()=>{
+                if (!videoFile && !youtubeInfo?.downloadUrl) {
+                  alert('Upload file dulu untuk bulk export real MP4. YouTube tanpa download URL hanya bisa single canvas export.')
+                  return
+                }
+                setShowExport(true)
+                setProgress(0)
+                for (let idx=0; idx<clips.length; idx++) {
+                  const c = clips[idx]
+                  setExportStatus(`Bulk ${idx+1}/${clips.length}: ${c.hook.slice(0,25)}...`)
+                  setProgress(Math.round((idx/clips.length)*100))
+                  setSelectedClip(c)
+                  setHook(c.hook)
+                  // Wait a bit for clip switch
+                  await new Promise(r=>setTimeout(r, 300))
+                  if (videoFile && ffmpeg && ffmpegLoaded) {
+                    try {
+                      await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile))
+                      await ffmpeg.exec(['-ss', c.start.toString(), '-i', 'input.mp4', '-t', c.duration.toString(), '-c', 'copy', 'bulk.mp4'])
+                      const data = await ffmpeg.readFile('bulk.mp4') as any
+                      const blob = new Blob([data], { type: 'video/mp4' })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `${projectTitle}-bulk-${idx+1}-${c.label}.mp4`
+                      a.click()
+                      URL.revokeObjectURL(url)
+                      await new Promise(r=>setTimeout(r, 500))
+                    } catch(e){ console.error(e) }
+                  }
+                }
+                setProgress(100)
+                setExportStatus(`Bulk export ${clips.length} clips selesai!`)
+                setTimeout(()=>{ setShowExport(false); setProgress(0); setExportStatus('') }, 2000)
+              }}>Bulk Export ({clips.length})</Button>
             </div>
             <div className="mt-2 text-[10px] text-[#9B9B9B] text-center">
               {ffmpegLoaded ? '✓ FFmpeg.wasm ready • Real MP4 export • Canvas subtitle burn' : 'Loading FFmpeg.wasm... fallback ke WebM recording'}
