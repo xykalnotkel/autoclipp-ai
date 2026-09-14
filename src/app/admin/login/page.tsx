@@ -76,8 +76,10 @@ export default function AdminLoginPage() {
         throw new Error(data.error || 'Login failed')
       }
 
-      // Save admin token
-      document.cookie = `admin_token=${data.token}; path=/; max-age=${60*60*8}; SameSite=Lax; Secure`
+      // Save admin token - both cookie and localStorage for cross-site reliability
+      document.cookie = `admin_token=${data.token}; path=/; max-age=${60*60*8}; SameSite=None; Secure`
+      localStorage.setItem('admin_token', data.token)
+      localStorage.setItem('admin_user', JSON.stringify({ username }))
       window.location.href = '/admin/dashboard'
     } catch (err: any) {
       setError(err.message)

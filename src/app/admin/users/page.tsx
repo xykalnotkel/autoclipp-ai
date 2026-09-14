@@ -6,16 +6,19 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'https://autoclipp-auth.akuntiktok76y.workers.dev'
+function getAdminToken(){ if(typeof window==='undefined') return null; return localStorage.getItem('admin_token') }
+function authHeaders(){ const t=getAdminToken(); const h:any={}; if(t) h['Authorization']=`Bearer ${t}`; return h }
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`${AUTH_URL}/admin/users`, { credentials: 'include' })
+    fetch(`${AUTH_URL}/admin/users`, { credentials: 'include', headers: authHeaders() })
       .then(r => r.json())
       .then(data => {
         if (data.users) setUsers(data.users)
+        else if (data.error?.includes('Unauthorized')) window.location.href='/admin/login'
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -42,7 +45,7 @@ export default function AdminUsersPage() {
 
       <div className="mx-auto max-w-[1280px] px-6 py-8">
         <h1 className="text-[22px] font-[700] tracking-[-0.02em]">Users — Real Data</h1>
-        <p className="text-[12px] text-[#6B6B6B] mt-1">All registered users • Verified • Real</p>
+        <p className="text-[12px] text-[#6B6B6B] mt-1">All registered users • Verified • Real • {users.length} total</p>
 
         <Card className="mt-6 overflow-hidden p-0">
           <div className="overflow-auto">

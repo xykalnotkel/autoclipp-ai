@@ -7,6 +7,9 @@ import Link from 'next/link'
 
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'https://autoclipp-auth.akuntiktok76y.workers.dev'
 
+function getAdminToken(){ if(typeof window==='undefined') return null; return localStorage.getItem('admin_token') }
+function authHeaders(){ const t=getAdminToken(); const h:any={'Content-Type':'application/json'}; if(t) h['Authorization']=`Bearer ${t}`; return h }
+
 type Payment = {
   id: string
   order_id: string
@@ -29,9 +32,10 @@ export default function AdminPaymentsPage() {
 
   const fetchPayments = async () => {
     try {
-      const res = await fetch(`${AUTH_URL}/admin/payments?status=${filter}`, { credentials: 'include' })
+      const res = await fetch(`${AUTH_URL}/admin/payments?status=${filter}`, { credentials: 'include', headers: authHeaders() })
       const data = await res.json()
       if (data.payments) setPayments(data.payments)
+      else if (data.error && data.error.includes('Unauthorized')) window.location.href='/admin/login'
     } catch {}
     setLoading(false)
   }
@@ -45,7 +49,7 @@ export default function AdminPaymentsPage() {
     try {
       const res = await fetch(`${AUTH_URL}/admin/payments/${id}/verify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         credentials: 'include',
         body: JSON.stringify({ action })
       })
