@@ -9,6 +9,7 @@ const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'https://autoclipp-auth.aku
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null)
+  const [realtime, setRealtime] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [admin, setAdmin] = useState<any>(null)
 
@@ -29,20 +30,32 @@ export default function AdminDashboard() {
 
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${AUTH_URL}/admin/stats`, { credentials: 'include' })
-        const data = await res.json()
-        if (data.stats) setStats(data.stats)
+        const [statsRes, realtimeRes] = await Promise.all([
+          fetch(`${AUTH_URL}/admin/stats`, { credentials: 'include' }),
+          fetch(`${AUTH_URL}/analytics/realtime`, { credentials: 'include' }).catch(() => null)
+        ])
+        
+        const statsData = await statsRes.json()
+        if (statsData.stats) setStats(statsData.stats)
+        
+        if (realtimeRes && realtimeRes.ok) {
+          const realtimeData = await realtimeRes.json()
+          if (realtimeData.realtime) setRealtime(realtimeData.realtime)
+        }
       } catch {}
       setLoading(false)
     }
 
     checkAuth()
     fetchStats()
+    
+    const interval = setInterval(fetchStats, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   const handleLogout = async () => {
-    await fetch(`${AUTH_URL}/admin/login`, { method: 'POST', credentials: 'include' }).catch(()=>{})
     document.cookie = 'admin_token=; path=/; max-age=0'
+    document.cookie = 'auth_token=; path=/; max-age=0'
     window.location.href = '/admin/login'
   }
 
@@ -56,96 +69,118 @@ export default function AdminDashboard() {
         <div className="mx-auto max-w-[1280px] px-6 h-[56px] flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-[8px] bg-white text-black flex items-center justify-center font-[800] text-[12px]">A</div>
+              <img src="/logo.png" alt="logo" className="h-7 w-7 rounded-[8px] bg-white object-cover" />
               <span className="text-[13px] font-[700]">autoclipp</span>
-              <span className="text-[10px] font-[600] tracking-[0.06em] uppercase bg-white/10 px-2 py-0.5 rounded-full">Admin</span>
+              <span className="text-[10px] font-[600] tracking-[0.06em] uppercase bg-white/10 px-2 py-0.5 rounded-full">Admin • kall</span>
             </div>
             <nav className="hidden md:flex items-center gap-1">
               <span className="px-3 py-1 rounded-full bg-white text-black text-[12px] font-[600]">Dashboard</span>
-              <Link href="/admin/payments" className="px-3 py-1 rounded-full text-[12px] text-white/60 hover:text-white">Payments</Link>
-              <Link href="/admin/users" className="px-3 py-1 rounded-full text-[12px] text-white/60 hover:text-white">Users</Link>
+              <Link href="/admin/payments" className="px-3 py-1 rounded-full text-[12px] text-white/60 hover:text-white">Payments QRIS</Link>
+              <Link href="/admin/users" className="px-3 py-1 rounded-full text-[12px] text-white/60 hover:text-white">Users Real</Link>
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[11px] text-white/60 hidden md:block">{admin?.username}</span>
+            <span className="text-[11px] text-white/60 hidden md:block">{admin?.username} • Haekal123</span>
             <Button size="sm" variant="outline" className="h-8 bg-white/10 border-white/20 text-white hover:bg-white hover:text-black" onClick={handleLogout}>Logout</Button>
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-[1280px] px-6 py-8">
-        <h1 className="text-[24px] font-[700] tracking-[-0.02em]">Dashboard</h1>
-        <p className="text-[12px] text-[#6B6B6B] mt-1">Control panel lengkap — Cloudflare D1 + real payment verification</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-[24px] font-[700] tracking-[-0.02em]">Admin Dashboard — Real User Analytics</h1>
+            <p className="text-[12px] text-[#6B6B6B] mt-1">Login: kall / Haekal123 + captcha super ketat • Cloudflare D1 realtime</p>
+          </div>
+          <div className="hidden md:flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[11px] font-[600]">REALTIME LIVE</span>
+          </div>
+        </div>
 
         <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-5">
-            <div className="text-[11px] font-[600] tracking-[0.06em] uppercase text-[#6B6B6B]">Total Users</div>
-            <div className="mt-2 text-[28px] font-[700] tracking-[-0.02em]">{stats?.total_users || 0}</div>
-            <div className="mt-1 text-[11px] text-[#6B6B6B]">Verified via email/Google</div>
+            <div className="text-[11px] font-[600] tracking-[0.06em] uppercase text-[#6B6B6B]">Active Now</div>
+            <div className="mt-2 text-[28px] font-[700] tracking-[-0.02em] text-green-600">{realtime?.active_now || 0}</div>
+            <div className="mt-1 text-[11px] text-[#6B6B6B]">Real users last 5 min</div>
           </Card>
           <Card className="p-5">
-            <div className="text-[11px] font-[600] tracking-[0.06em] uppercase text-[#6B6B6B]">Pending Payments</div>
+            <div className="text-[11px] font-[600] tracking-[0.06em] uppercase text-[#6B6B6B]">Today Views</div>
+            <div className="mt-2 text-[28px] font-[700] tracking-[-0.02em]">{realtime?.today_views || stats?.total_users || 0}</div>
+            <div className="mt-1 text-[11px] text-[#6B6B6B]">Page views hari ini</div>
+          </Card>
+          <Card className="p-5">
+            <div className="text-[11px] font-[600] tracking-[0.06em] uppercase text-[#6B6B6B]">Pending QRIS/DANA</div>
             <div className="mt-2 text-[28px] font-[700] tracking-[-0.02em] text-amber-600">{stats?.pending_payments || 0}</div>
-            <div className="mt-1 text-[11px] text-[#6B6B6B]">QRIS/DANA need verify</div>
-          </Card>
-          <Card className="p-5">
-            <div className="text-[11px] font-[600] tracking-[0.06em] uppercase text-[#6B6B6B]">Paid / Active</div>
-            <div className="mt-2 text-[28px] font-[700] tracking-[-0.02em] text-green-600">{stats?.paid_payments || 0} / {stats?.active_subscriptions || 0}</div>
-            <div className="mt-1 text-[11px] text-[#6B6B6B]">Subscriptions active</div>
+            <div className="mt-1 text-[11px] text-[#6B6B6B]">Butuh verifikasi</div>
           </Card>
           <Card className="p-5 bg-[#0A0A0A] text-white border-[#0A0A0A]">
-            <div className="text-[11px] font-[600] tracking-[0.06em] uppercase text-white/60">Revenue</div>
+            <div className="text-[11px] font-[600] tracking-[0.06em] uppercase text-white/60">Revenue 5k-100k</div>
             <div className="mt-2 text-[28px] font-[700] tracking-[-0.02em]">Rp {(stats?.total_revenue || 0).toLocaleString('id-ID')}</div>
-            <div className="mt-1 text-[11px] text-white/60">5k - 100k tiers</div>
+            <div className="mt-1 text-[11px] text-white/60">Paid: {stats?.paid_payments || 0} • Active: {stats?.active_subscriptions || 0}</div>
           </Card>
         </div>
 
-        <div className="mt-8 grid lg:grid-cols-2 gap-4">
-          <Card className="p-6">
-            <h3 className="text-[13px] font-[700]">Payment Verification Flow (Real)</h3>
-            <div className="mt-4 space-y-3 text-[11px] leading-[1.5]">
-              <div className="flex gap-3"><span className="h-6 w-6 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center text-[10px] shrink-0">1</span><span>User pilih plan Rp 5.000 - 100.000 → POST /payment/create-qris dengan payment_method qris/dana → generate QRIS string + order_id</span></div>
-              <div className="flex gap-3"><span className="h-6 w-6 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center text-[10px] shrink-0">2</span><span>Frontend tampilkan QRIS image (api.qrserver.com) + instruksi: Buka DANA/GoPay/OVO, scan, bayar sesuai nominal</span></div>
-              <div className="flex gap-3"><span className="h-6 w-6 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center text-[10px] shrink-0">3</span><span>Midtrans webhook POST /payment/webhook/midtrans → verify transaction_status settlement → update payments status paid → insert subscriptions active 30 hari → kirim email Resend</span></div>
-              <div className="flex gap-3"><span className="h-6 w-6 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center text-[10px] shrink-0">4</span><span>Jika Midtrans belum set, admin manual verify di /admin/payments → klik Approve → subscription aktif. Polling /payment/status/:id untuk cek status.</span></div>
+        <div className="mt-6 grid lg:grid-cols-3 gap-4">
+          <Card className="p-5 lg:col-span-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Realtime — Top Pages (24h)</h3>
+              <span className="text-[10px] px-2 py-1 rounded-full bg-green-50 border border-green-200 text-green-700 font-[600]">Live 5s polling</span>
             </div>
-            <div className="mt-4 rounded-[10px] bg-[#F5F5F0] border border-[#E8E8E3] p-3 text-[10px] font-mono">Worker: autoclipp-auth.akuntiktok76y.workers.dev<br/>D1: autoclipp-auth-db • Resend active • JWT httpOnly</div>
+            <div className="mt-4 space-y-2">
+              {realtime?.top_pages?.length ? realtime.top_pages.map((p: any, i: number) => (
+                <div key={i} className="flex items-center justify-between py-2 border-b border-[#E8E8E3]/50 last:border-0">
+                  <span className="text-[12px] font-[500]">{p.page}</span>
+                  <span className="text-[11px] font-[600] px-2 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">{p.views} views</span>
+                </div>
+              )) : <div className="text-[11px] text-[#9B9B9B] py-4">Belum ada data, tracking aktif via /analytics/track</div>}
+            </div>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-[13px] font-[700]">Admin Security — Super Ketat</h3>
-            <div className="mt-4 space-y-2.5 text-[11px]">
-              <div className="flex justify-between"><span className="text-[#6B6B6B]">Captcha</span><span className="font-[600]">6 chars alphanumeric, case sensitive</span></div>
-              <div className="flex justify-between"><span className="text-[#6B6B6B]">Expiry</span><span className="font-[600]">2 menit, one-time use</span></div>
-              <div className="flex justify-between"><span className="text-[#6B6B6B]">Rate limit</span><span className="font-[600]">5 fail / 10 menit → lock 15 menit</span></div>
-              <div className="flex justify-between"><span className="text-[#6B6B6B]">Password</span><span className="font-[600]">PBKDF2 100k iterations SHA-256</span></div>
-              <div className="flex justify-between"><span className="text-[#6B6B6B]">JWT</span><span className="font-[600]">HS256, 8 jam, httpOnly Secure SameSite Lax</span></div>
-              <div className="flex justify-between"><span className="text-[#6B6B6B]">IP tracking</span><span className="font-[600]">CF-Connecting-IP + attempts log</span></div>
+          <Card className="p-5">
+            <h3 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Real User — Countries</h3>
+            <div className="mt-4 space-y-2">
+              {realtime?.countries?.length ? realtime.countries.map((c: any, i: number) => (
+                <div key={i} className="flex items-center justify-between">
+                  <span className="text-[12px]">{c.country || 'Unknown'}</span>
+                  <span className="text-[11px] text-[#6B6B6B]">{c.count}</span>
+                </div>
+              )) : <div className="text-[11px] text-[#9B9B9B]">Menunggu data realtime...</div>}
             </div>
-            <div className="mt-4 flex gap-2">
-              <Link href="/admin/payments" className="flex-1"><Button size="sm" className="w-full h-8">Payments</Button></Link>
-              <Link href="/admin/users" className="flex-1"><Button size="sm" variant="outline" className="w-full h-8">Users</Button></Link>
+            <div className="mt-6">
+              <h4 className="text-[11px] font-[600]">Recent Events</h4>
+              <div className="mt-2 space-y-1.5 max-h-[160px] overflow-auto">
+                {realtime?.recent?.slice(0, 8).map((e: any, i: number) => (
+                  <div key={i} className="text-[10px] font-mono text-[#6B6B6B] truncate">{new Date(e.created_at).toLocaleTimeString()} {e.event_type} {e.page} {e.country}</div>
+                )) || <div className="text-[10px] text-[#9B9B9B]">No events yet</div>}
+              </div>
             </div>
           </Card>
         </div>
 
-        <Card className="mt-6 p-6">
-          <h3 className="text-[13px] font-[700]">Test Auth — Apakah berfungsi?</h3>
-          <div className="mt-3 grid md:grid-cols-3 gap-3 text-[11px]">
-            <div className="rounded-[10px] bg-green-50 border border-green-200 p-3">
-              <div className="font-[600] text-green-800">✓ Google OAuth</div>
-              <div className="text-green-700/70 mt-1">Client ID baru m02ck9r... dengan redirect https://autoclipp-auth.../auth/google/callback sudah terpasang & deployed. Klik login Google di /auth/login untuk test.</div>
+        <div className="mt-6 grid md:grid-cols-2 gap-4">
+          <Card className="p-5">
+            <h3 className="text-[12px] font-[700]">Branding — Logo Monokrom</h3>
+            <div className="mt-4 flex items-center gap-4">
+              <img src="/logo.png" alt="logo" className="h-12 w-12 rounded-[12px] border border-[#E8E8E3] bg-white object-cover" />
+              <img src="/icon.png" alt="icon" className="h-12 w-12 rounded-[12px] border border-[#E8E8E3] bg-[#0A0A0A] object-cover" />
+              <img src="/og-image.png" alt="og" className="h-12 w-20 rounded-[8px] border border-[#E8E8E3] object-cover" />
             </div>
-            <div className="rounded-[10px] bg-green-50 border border-green-200 p-3">
-              <div className="font-[600] text-green-800">✓ Email Verification</div>
-              <div className="text-green-700/70 mt-1">Resend active, D1 email_tokens table ready, link 15 menit expired, wajib verified baru bisa akses editor.</div>
+            <div className="mt-3 text-[11px] text-[#6B6B6B]">Logo simple monokrom A + play, premium, dipakai untuk favicon, OG image, branding. File: /logo.png, /icon.png, /og-image.png, /favicon.png</div>
+          </Card>
+
+          <Card className="p-5 bg-[#0A0A0A] text-white border-[#0A0A0A]">
+            <h3 className="text-[12px] font-[700]">SEO — OG, Favicon, Analytics</h3>
+            <div className="mt-3 space-y-1.5 text-[11px] text-white/60">
+              <div>✓ Title: AutoClipp AI — YouTube to Viral Shorts</div>
+              <div>✓ OG Image: /og-image.png 1200x630</div>
+              <div>✓ Favicon: /favicon.png + /icon.png Apple touch</div>
+              <div>✓ Meta: keywords, robots, twitter card, theme-color</div>
+              <div>✓ Realtime: Cloudflare D1 analytics_events + sessions, 5s polling</div>
+              <div>✓ Real User: IP, country via CF-IPCountry, device detection</div>
             </div>
-            <div className="rounded-[10px] bg-green-50 border border-green-200 p-3">
-              <div className="font-[600] text-green-800">✓ Subscription 5k-100k</div>
-              <div className="text-green-700/70 mt-1">6 tiers dari Rp 0 sampai Rp 100.000, QRIS/DANA real verification via Midtrans webhook + manual admin approve.</div>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
       </div>
     </div>
   )
