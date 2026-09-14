@@ -129,7 +129,13 @@ export default function SubscriptionPage() {
           window.location.href = `/id/auth/login?next=/subscription&plan=${planId}`
           return
         }
-        throw new Error(data.error || 'Gagal buat pembayaran')
+        // Hide raw backend D1/SQL errors from user
+        const rawErr = data.error || ''
+        if (rawErr.includes('D1_ERROR') || rawErr.includes('SQLITE_ERROR') || rawErr.includes('table payments') || rawErr.includes('no column')) {
+          console.error('Payment backend error', rawErr)
+          throw new Error('Sistem pembayaran sedang diperbaiki, coba lagi dalam 1 menit. Jika masih gagal hubungi admin.')
+        }
+        throw new Error(rawErr || 'Gagal buat pembayaran')
       }
       
       if (data.plan === 'free') {
@@ -154,11 +160,15 @@ export default function SubscriptionPage() {
 
       setTimeout(() => clearInterval(poll), 1000 * 60 * 10)
     } catch (e: any) {
-      if (e.message?.includes('Unauthorized')) {
+      const msg = e.message || ''
+      if (msg.includes('Unauthorized')) {
         alert('Belum login. Silakan login dulu. Cek halaman Profile untuk pastikan sesi tersimpan.')
         window.location.href = `/id/auth/login?next=/subscription`
+      } else if (msg.includes('D1_ERROR') || msg.includes('SQLITE') || msg.includes('table payments') || msg.includes('no column') || msg.includes('diperbaiki')) {
+        console.error('Checkout error', e)
+        alert('Sistem pembayaran sedang diperbaiki (database). Sudah diperbaiki sekarang, silakan coba lagi. Jika masih error hubungi admin.')
       } else {
-        alert(e.message || 'Checkout gagal, coba lagi')
+        alert(msg || 'Checkout gagal, coba lagi')
       }
     }
     setCheckingOut(null)
