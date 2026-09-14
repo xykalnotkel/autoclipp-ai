@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
@@ -42,24 +43,15 @@ const ANIMATIONS: any = {}
 Object.values(SUBTITLE_ANIMATIONS).forEach((a: any) => { ANIMATIONS[a.id] = { name: a.name, desc: a.desc, usage: a.usage } })
 const FONTS = ['Anton', 'Bebas Neue', 'Montserrat', 'Inter', 'Oswald', 'Georgia', 'Poppins', 'Space Grotesk']
 
-const BASE_WORDS: Word[] = [
-  { word: "Guys,", start: 0.0, end: 0.4 }, { word: "ini", start: 0.4, end: 0.6 }, { word: "rahasia", start: 0.6, end: 1.1 },
-  { word: "yang", start: 1.1, end: 1.3 }, { word: "gak", start: 1.3, end: 1.5 }, { word: "pernah", start: 1.5, end: 1.9 },
-  { word: "diajarin", start: 1.9, end: 2.5 }, { word: "di", start: 2.5, end: 2.7 }, { word: "sekolah", start: 2.7, end: 3.3 },
-  { word: "bisnis!", start: 3.3, end: 4.0 }, { word: "Kalo", start: 4.5, end: 4.8 }, { word: "lu", start: 4.8, end: 5.0 },
-  { word: "mau", start: 5.0, end: 5.2 }, { word: "kaya,", start: 5.2, end: 5.7 }, { word: "stop", start: 5.7, end: 6.0 },
-  { word: "kerja", start: 6.0, end: 6.4 }, { word: "keras,", start: 6.4, end: 6.9 }, { word: "mulai", start: 6.9, end: 7.2 },
-  { word: "kerja", start: 7.2, end: 7.5 }, { word: "cerdas.", start: 7.5, end: 8.2 },
-  { word: "Modal", start: 8.5, end: 8.9 }, { word: "500", start: 8.9, end: 9.2 }, { word: "ribu", start: 9.2, end: 9.6 },
-  { word: "bisa", start: 9.6, end: 9.9 }, { word: "jadi", start: 9.9, end: 10.2 }, { word: "milyaran", start: 10.2, end: 10.9 },
-]
-
 export default function EditorPage() {
+  const router = useRouter()
   const [videoFile, setVideoFile] = useState<File | null>(null)
-  const [videoUrl, setVideoUrl] = useState('')
+  const [videoUrl, setVideoUrl] = useState('') // real Cloudinary URL - ONLINE ONLY
+  const [previewBlobUrl, setPreviewBlobUrl] = useState('') // blob for instant preview
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [youtubeInfo, setYoutubeInfo] = useState<any>(null)
   const [isYoutubeLoading, setIsYoutubeLoading] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [clips, setClips] = useState<Clip[]>([])
   const [selectedClip, setSelectedClip] = useState<Clip | null>(null)
@@ -90,8 +82,8 @@ export default function EditorPage() {
   const [customBgColor, setCustomBgColor] = useState('')
   const [customFont, setCustomFont] = useState('')
   const [showCustom, setShowCustom] = useState(false)
-  const [logs, setLogs] = useState<string[]>(['Editor siap - upload video dulu di Langkah 1'])
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState('') // visible video before clip
+  const [logs, setLogs] = useState<string[]>(['Online mode - upload video untuk mulai'])
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState('') // for compatibility, now = previewBlobUrl or videoUrl
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -99,7 +91,7 @@ export default function EditorPage() {
   const previewVideoRef = useRef<HTMLVideoElement>(null)
 
   const addLog = (msg: string) => {
-    console.log('[Editor]', msg)
+    console.log('[Editor Online]', msg)
     setLogs(prev => [`${new Date().toLocaleTimeString()} - ${msg}`, ...prev].slice(0, 8))
   }
 
@@ -129,9 +121,9 @@ export default function EditorPage() {
         })
         setFfmpeg(ff)
         setFfmpegLoaded(true)
-        addLog('FFmpeg ready - export MP4 aktif')
+        addLog('FFmpeg ready - export MP4 online aktif')
       } catch (e) {
-        addLog('FFmpeg fallback - export pakai canvas recording')
+        addLog('FFmpeg loading... fallback canvas recording')
         setFfmpegLoaded(false)
       }
     }
@@ -139,9 +131,13 @@ export default function EditorPage() {
   }, [])
 
   const genClips = useCallback((words: Word[], dur: number) => {
-    addLog(`GenClips: ${words.length} kata, dur ${dur.toFixed(1)}s`)
+    if (!words || words.length === 0) {
+      addLog('Gagal generate: transcript kosong dari server')
+      return
+    }
+    addLog(`Generate clips online: ${words.length} kata, dur ${dur.toFixed(1)}s`)
     const totalDuration = dur && dur > 0 ? dur : 120
-    const effectiveDuration = Math.max(totalDuration, 90)
+    const effectiveDuration = Math.max(totalDuration, 60)
     const hooks = [
       "RAHASIA YANG TIDAK DIAJARKAN DI SEKOLAH",
       "STOP KERJA KERAS, MULAI KERJA CERDAS",
@@ -149,6 +145,7 @@ export default function EditorPage() {
       "KESALAHAN 90 PERSEN PEMULA BISNIS",
       "CARA BALIK MODAL DALAM 7 HARI"
     ]
+    // expand words if transcript shorter than video duration - server already expands, but ensure
     let allWords = [...words]
     if (allWords.length > 0) {
       const lastEnd = allWords[allWords.length - 1].end
@@ -167,9 +164,7 @@ export default function EditorPage() {
         }
       }
     }
-    if (allWords.length === 0) {
-      allWords = BASE_WORDS.map((w, i) => ({ ...w, start: i * 0.5, end: i * 0.5 + 0.4 }))
-    }
+
     const newClips: Clip[] = []
     const clipCount = 5
     const segment = effectiveDuration / clipCount
@@ -190,7 +185,7 @@ export default function EditorPage() {
         words: segWords
       })
     }
-    addLog(`Berhasil buat ${newClips.length} clips - klik salah satu di Langkah 3`)
+    addLog(`Berhasil buat ${newClips.length} clips online - pilih di Langkah 3`)
     setClips(newClips)
     if (newClips[0]) {
       setSelectedClip(newClips[0])
@@ -226,7 +221,7 @@ export default function EditorPage() {
       return
     }
     setIsYoutubeLoading(true)
-    addLog(`Fetch YouTube: ${targetUrl.slice(0,40)}...`)
+    addLog(`Fetch YouTube online: ${targetUrl.slice(0,40)}...`)
     setYoutubeInfo(null)
     try {
       const res = await fetch('/api/youtube', {
@@ -238,11 +233,15 @@ export default function EditorPage() {
       if (!res.ok) throw new Error(data.error || 'Gagal ambil YouTube')
       setYoutubeInfo(data)
       setProjectTitle(data.title || 'YouTube Video')
-      addLog(`YouTube terdeteksi: ${data.title?.slice(0,30)} - ${data.duration}s`)
+      addLog(`YouTube terdeteksi online: ${data.title?.slice(0,30)} - ${data.duration}s`)
       if (data.downloadUrl) {
         setVideoUrl(data.downloadUrl)
         setVideoPreviewUrl(data.downloadUrl)
-        addLog('Download URL dapet - video bisa dipreview')
+        setPreviewBlobUrl(data.downloadUrl)
+        addLog('Download URL online ready - video bisa dipreview')
+      } else {
+        // if no downloadUrl, use thumbnail preview but still need videoUrl for transcribe fallback
+        addLog('YouTube tanpa downloadUrl - pakai preview thumbnail, transcribe dari server')
       }
       if (data.transcript && data.transcript.length) {
         const words = data.transcript
@@ -259,11 +258,27 @@ export default function EditorPage() {
           extWords = extWords.filter(w => w.end <= dur)
         }
         setDuration(dur)
-        addLog(`Transcript ${extWords.length} kata - generate clips`)
+        addLog(`Transcript online ${extWords.length} kata - generate clips`)
         genClips(extWords, dur)
       } else {
-        addLog('No transcript - pakai mock words')
-        genClips(BASE_WORDS, data.duration || 120)
+        addLog('YouTube tanpa transcript - panggil transcribe API online')
+        // call transcribe API for youtube
+        try {
+          const tRes = await fetch('/api/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ youtubeUrl: targetUrl, duration: data.duration || 120 })
+          })
+          const tData = await tRes.json()
+          if (tRes.ok && tData.words) {
+            genClips(tData.words, tData.duration || data.duration || 120)
+            setDuration(tData.duration || data.duration || 120)
+          } else {
+            throw new Error('Transcribe YouTube gagal')
+          }
+        } catch (e: any) {
+          addLog(`Transcribe YouTube gagal: ${e.message}`)
+        }
       }
     } catch (e: any) {
       addLog(`YouTube gagal: ${e.message}`)
@@ -286,14 +301,19 @@ export default function EditorPage() {
   }
 
   const handleTranscribe = async () => {
-    addLog(`Klik Generate Clips - videoUrl:${!!videoUrl} yt:${!!youtubeInfo} dur:${duration}`)
+    addLog(`Generate clips online - videoUrl:${!!videoUrl} yt:${!!youtubeInfo} dur:${duration}`)
     if (!videoUrl && !youtubeInfo) {
-      addLog('GAGAL: belum ada video di Langkah 1')
-      alert('Upload video atau tempel link YouTube dulu di Langkah 1 - kotak atas')
+      addLog('Gagal: belum ada video online')
+      alert('Upload video dulu di Langkah 1 - harus upload ke Cloudinary dulu')
+      return
+    }
+    if (!videoUrl) {
+      addLog('Gagal: videoUrl Cloudinary belum ready - tunggu upload selesai')
+      alert('Tunggu upload ke Cloudinary selesai dulu')
       return
     }
     setIsProcessing(true)
-    addLog('Memanggil AI transcribe - buat 5 clips...')
+    addLog('Memanggil /api/transcribe online - server Groq/expanded...')
     try {
       const durToUse = duration && duration > 0 ? duration : 120
       const res = await fetch('/api/transcribe', {
@@ -302,15 +322,16 @@ export default function EditorPage() {
         body: JSON.stringify({ videoUrl, duration: durToUse, youtubeUrl: youtubeInfo ? youtubeUrl : undefined })
       })
       const data = await res.json()
-      addLog(`Transcribe OK: ${data.words?.length || 0} kata, dur ${data.duration}s - ${data.provider}`)
-      let words = data.words || BASE_WORDS
+      if (!res.ok) throw new Error(data.error || 'Transcribe API error')
+      if (!data.words || data.words.length === 0) throw new Error('Transcript kosong dari server')
+      addLog(`Transcribe OK online: ${data.words?.length || 0} kata, dur ${data.duration}s - ${data.provider}`)
+      const words = data.words
       const apiDur = data.duration || durToUse
       setDuration(apiDur)
       genClips(words, apiDur)
     } catch (e: any) {
-      addLog(`Transcribe error: ${e.message} - pakai fallback mock`)
-      const fallbackDur = duration && duration > 0 ? duration : 120
-      genClips(BASE_WORDS, fallbackDur)
+      addLog(`Transcribe online error: ${e.message} - tidak ada fallback offline`)
+      alert(`Gagal transcribe online: ${e.message}. Coba lagi, pastikan file sudah terupload ke Cloudinary.`)
     }
     setIsProcessing(false)
   }
@@ -318,7 +339,7 @@ export default function EditorPage() {
   const handleAiHook = async () => {
     if (!selectedClip) { addLog('Pilih clip dulu di Langkah 3'); alert('Pilih clip dulu di Langkah 3'); return }
     setAiLoading(true)
-    addLog(`Generate hook AI untuk clip ${selectedClip.id}`)
+    addLog(`Generate hook AI online untuk clip ${selectedClip.id}`)
     try {
       const transcript = selectedClip.words.map(w => w.word).join(' ')
       const authUrl = process.env.NEXT_PUBLIC_AUTH_URL || 'https://autoclipp-auth.akuntiktok76y.workers.dev'
@@ -334,87 +355,116 @@ export default function EditorPage() {
         const firstHook = lines[0]?.replace(/^\d+\.\s*/, '').replace(/^-+\s*/, '').replace(/"/g, '').trim()
         if (firstHook) {
           setHook(firstHook.toUpperCase().slice(0, 60))
-          addLog(`Hook AI: ${firstHook}`)
+          addLog(`Hook AI online: ${firstHook}`)
         }
+      } else {
+        throw new Error('No AI result')
       }
-    } catch {
+    } catch (e: any) {
+      addLog(`Hook AI gagal: ${e.message}`)
       const randomHook = clips[Math.floor(Math.random() * clips.length)]?.hook || 'RAHASIA VIRAL TERUNGKAP'
       setHook(randomHook)
-      addLog(`Hook fallback: ${randomHook}`)
     }
     setAiLoading(false)
   }
 
   const handleFile = async (f: File) => {
-    addLog(`Upload file: ${f.name} ${(f.size/1024/1024).toFixed(1)}MB - ${f.type}`)
+    addLog(`Upload file online: ${f.name} ${(f.size/1024/1024).toFixed(1)}MB - ${f.type}`)
     setVideoFile(f)
-    const url = URL.createObjectURL(f)
-    setVideoUrl(url)
-    setVideoPreviewUrl(url)
+    const blobUrl = URL.createObjectURL(f)
+    setPreviewBlobUrl(blobUrl)
+    setVideoPreviewUrl(blobUrl)
     setProjectTitle(f.name.replace(/\.[^/.]+$/, ''))
     setClips([])
     setSelectedClip(null)
     setYoutubeInfo(null)
-    addLog('File terupload - cek preview di tengah - bisa langsung Tes Play atau Generate Clips di Langkah 2')
+    setVideoUrl('') // reset real url until upload done
+    addLog('Preview blob ready - upload ke Cloudinary online...')
 
+    // get duration first
     const tempVideo = document.createElement('video')
     tempVideo.preload = 'metadata'
-    tempVideo.src = url
+    tempVideo.src = blobUrl
     tempVideo.onloadedmetadata = () => {
       const d = tempVideo.duration || 120
-      addLog(`Duration terdeteksi: ${d.toFixed(1)}s - siap generate - auto buat 5 clips`)
+      addLog(`Duration terdeteksi online: ${d.toFixed(1)}s`)
       setDuration(d)
-      setTimeout(() => genClips(BASE_WORDS, d), 600)
     }
     tempVideo.onerror = () => {
-      addLog('Gagal baca duration - pakai fallback 120s - auto generate')
+      addLog('Gagal baca duration - fallback 120s')
       setDuration(120)
-      setTimeout(() => genClips(BASE_WORDS, 120), 600)
     }
 
+    // upload to Cloudinary - ONLINE ONLY, no fallback
+    setIsUploading(true)
     try {
       const fd = new FormData()
       fd.append('file', f)
-      await fetch('/api/upload', { method: 'POST', body: fd })
-      addLog('Upload ke server OK')
-    } catch {
-      addLog('Upload server skip - tetap bisa generate offline')
+      addLog('Uploading ke /api/upload (Cloudinary) - online...')
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload gagal')
+      if (!data.url) throw new Error('No URL dari Cloudinary')
+      setVideoUrl(data.url)
+      setVideoPreviewUrl(data.url)
+      addLog(`Upload Cloudinary OK online: ${data.url.slice(0,50)}... dur ${data.duration || '?'}s`)
+      if (data.duration) setDuration(data.duration)
+      // auto transcribe after upload - full online flow
+      addLog('Auto transcribe online setelah upload...')
+      setTimeout(() => handleTranscribeOnline(data.url, data.duration || duration || 120), 500)
+    } catch (e: any) {
+      addLog(`Upload Cloudinary gagal online: ${e.message}`)
+      alert(`Upload gagal: ${e.message}. Coba lagi.`)
     }
+    setIsUploading(false)
+  }
+
+  const handleTranscribeOnline = async (realUrl: string, dur: number) => {
+    if (!realUrl) return
+    setIsProcessing(true)
+    try {
+      const durToUse = dur && dur > 0 ? dur : duration || 120
+      addLog(`Transcribe online auto: ${realUrl.slice(0,40)}... dur ${durToUse}`)
+      const res = await fetch('/api/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl: realUrl, duration: durToUse })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Transcribe error')
+      addLog(`Transcribe auto OK: ${data.words?.length} kata - ${data.provider}`)
+      genClips(data.words, data.duration || durToUse)
+      setDuration(data.duration || durToUse)
+    } catch (e: any) {
+      addLog(`Auto transcribe gagal: ${e.message} - klik Generate manual`)
+    }
+    setIsProcessing(false)
   }
 
   const handleSaveProject = async () => {
-    addLog(`Klik Simpan - clips:${clips.length} selected:${!!selectedClip} video:${!!videoUrl}`)
-    if (!clips.length && !videoUrl) { addLog('Gagal simpan: belum ada video'); alert('Upload video dulu di Langkah 1'); return }
-    // allow save even without clips - will save video info
-    if (!clips.length && videoUrl) {
-      addLog('Simpan tanpa clips - auto generate dulu biar ada isi')
-      genClips(BASE_WORDS, duration || 120)
-      // continue save after gen
+    addLog(`Klik Simpan online - clips:${clips.length} selected:${!!selectedClip} video:${!!videoUrl}`)
+    if (!videoUrl) {
+      addLog('Gagal simpan online: belum ada Cloudinary URL')
+      alert('Upload video dulu sampai Cloudinary URL ready - tunggu upload selesai')
+      return
+    }
+    if (!clips.length) {
+      addLog('Gagal simpan online: belum ada clips - generate dulu')
+      alert('Generate clips dulu di Langkah 2 - harus online transcribe')
+      return
     }
     setSaving(true)
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        addLog('Belum login - simpan lokal')
-        // Local save fallback
-        const projectData = {
-          title: projectTitle,
-          clips,
-          selectedClip,
-          styleKey,
-          anim,
-          hook,
-          duration,
-          createdAt: new Date().toISOString()
-        }
-        localStorage.setItem(`project_${Date.now()}`, JSON.stringify(projectData))
-        alert('Belum login - project disimpan lokal di browser. Login untuk simpan ke cloud.')
-        addLog('Project disimpan lokal - localStorage')
+        addLog('Belum login - redirect ke login online')
+        alert('Harus login dulu untuk simpan project online - redirect ke login')
+        router.push('/id/auth/login')
         setSaving(false)
         return
       }
-      addLog(`Simpan ke Supabase user:${user.email}`)
+      addLog(`Simpan ke Supabase online user:${user.email}`)
       const { data: project, error } = await supabase
         .from('projects')
         .insert({ user_id: user.id, title: projectTitle, duration, status: 'completed' })
@@ -436,14 +486,12 @@ export default function EditorPage() {
         }))
         const { error: clipError } = await supabase.from('clips').insert(clipsToInsert)
         if (clipError) throw clipError
-        addLog('Project berhasil disimpan ke cloud')
-        alert('Project berhasil disimpan ke daftar project')
+        addLog('Project berhasil disimpan online ke Supabase')
+        alert('Project berhasil disimpan online')
       }
     } catch (e: any) {
-      addLog(`Gagal simpan: ${e.message} - fallback lokal`)
-      const projectData = { title: projectTitle, clips, selectedClip, styleKey, hook, duration }
-      localStorage.setItem(`project_${Date.now()}`, JSON.stringify(projectData))
-      alert('Gagal simpan cloud, tapi disimpan lokal. Error: ' + e.message)
+      addLog(`Gagal simpan online: ${e.message}`)
+      alert('Gagal simpan online: ' + e.message)
     }
     setSaving(false)
   }
@@ -456,7 +504,6 @@ export default function EditorPage() {
     if (!ctx) return
     let animationId: number
     const render = () => {
-      // always draw video frame even when paused, so no black canvas
       const vw = canvas.width, vh = canvas.height
       try {
         ctx.clearRect(0, 0, vw, vh)
@@ -478,7 +525,6 @@ export default function EditorPage() {
         ctx.restore()
       } catch {}
 
-      // if no clip yet, just show video without subtitle
       if (!selectedClip) {
         animationId = requestAnimationFrame(render)
         return
@@ -487,7 +533,6 @@ export default function EditorPage() {
       if (!video || video.paused) { 
         animationId = requestAnimationFrame(render); return 
       }
-      // video already drawn above, now draw subtitles only
       const ct = currentTime - selectedClip.start
       const at = selectedClip.start + ct
       const visible = selectedClip.words.filter(w => at >= w.start - 0.1 && at <= w.end + 0.7)
@@ -598,7 +643,7 @@ export default function EditorPage() {
     const lm = () => {
       if (v.duration && !isNaN(v.duration) && v.duration !== Infinity) {
         setDuration(v.duration)
-        addLog(`Video metadata: ${v.duration.toFixed(1)}s`)
+        addLog(`Video metadata online: ${v.duration.toFixed(1)}s`)
       }
     }
     v.addEventListener('timeupdate', ut)
@@ -618,45 +663,44 @@ export default function EditorPage() {
     setSelectedClip(updated)
     setClips(prev => prev.map(c => c.id === updated.id ? updated : c))
     if (videoRef.current) videoRef.current.currentTime = newStart
-    addLog(`Durasi diubah: ${newStart.toFixed(1)}s - ${newEnd.toFixed(1)}s`)
+    addLog(`Durasi diubah online: ${newStart.toFixed(1)}s - ${newEnd.toFixed(1)}s`)
   }
 
   const handleTestPlay = () => {
-    // FIX: bisa play full video dulu walau belum ada clip
     if (selectedClip && videoRef.current) {
-      addLog(`Tes Play clip ${selectedClip.id} ${clipStartEdit}-${clipEndEdit}`)
+      addLog(`Tes Play online clip ${selectedClip.id} ${clipStartEdit}-${clipEndEdit}`)
       videoRef.current.currentTime = clipStartEdit
       videoRef.current.play().then(() => setIsPlaying(true)).catch(()=>{})
       if (previewVideoRef.current) previewVideoRef.current.currentTime = clipStartEdit
       return
     }
-    // fallback: play full video preview
     if (previewVideoRef.current) {
-      addLog('Tes Play full video preview (belum ada clip) - berfungsi')
+      addLog('Tes Play full video online preview')
       previewVideoRef.current.currentTime = 0
       previewVideoRef.current.play().then(() => setIsPlaying(true)).catch(()=>{})
       return
     }
     if (videoRef.current) {
-      addLog('Tes Play full video via canvas video (belum ada clip)')
+      addLog('Tes Play full video online via canvas')
       videoRef.current.currentTime = 0
       videoRef.current.play().then(() => setIsPlaying(true)).catch(()=>{})
       return
     }
-    addLog('Gagal tes: belum ada video - upload dulu di Langkah 1')
-    alert('Upload video dulu di Langkah 1 - belum ada video untuk diputar')
+    addLog('Gagal tes online: belum ada video')
+    alert('Upload video dulu di Langkah 1 - harus online Cloudinary')
   }
 
   const doExport = async () => {
-    addLog(`Export clip ${selectedClip?.id} style ${styleKey}`)
-    if (!selectedClip) { addLog('Gagal export: belum pilih clip'); alert('Pilih clip dulu di Langkah 3'); return }
+    addLog(`Export online clip ${selectedClip?.id} style ${styleKey}`)
+    if (!selectedClip) { addLog('Gagal export online: belum pilih clip'); alert('Pilih clip dulu di Langkah 3'); return }
+    if (!videoUrl) { addLog('Gagal export online: belum ada Cloudinary URL'); alert('Tunggu upload Cloudinary selesai'); return }
     setShowExport(true)
     setProgress(0)
-    setExportStatus('Menyiapkan...')
+    setExportStatus('Menyiapkan online...')
     try {
       if (videoFile && ffmpeg && ffmpegLoaded) {
-        setExportStatus('Memotong video via FFmpeg...')
-        addLog('FFmpeg potong video...')
+        setExportStatus('Memotong video online via FFmpeg...')
+        addLog('FFmpeg potong video online...')
         setProgress(10)
         await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile))
         setProgress(20)
@@ -671,14 +715,14 @@ export default function EditorPage() {
         a.click()
         URL.revokeObjectURL(url)
         setProgress(100)
-        setExportStatus('Berhasil diunduh')
-        addLog('Export MP4 berhasil via FFmpeg')
+        setExportStatus('Berhasil diunduh online')
+        addLog('Export MP4 online berhasil via FFmpeg')
       } else {
-        setExportStatus('Merekam preview dengan subtitle...')
-        addLog('Export via canvas recording...')
+        setExportStatus('Merekam preview online dengan subtitle...')
+        addLog('Export via canvas recording online...')
         const canvas = canvasRef.current
         const video = videoRef.current
-        if (!canvas || !video || !selectedClip) throw new Error('No video')
+        if (!canvas || !video || !selectedClip) throw new Error('No video online')
         const stream = canvas.captureStream(30)
         try {
           const audioCtx = new AudioContext()
@@ -695,7 +739,7 @@ export default function EditorPage() {
           recorder.onstop = async () => {
             const blob = new Blob(chunks, { type: 'video/webm' })
             if (ffmpeg && ffmpegLoaded) {
-              setExportStatus('Konversi ke MP4...')
+              setExportStatus('Konversi ke MP4 online...')
               try {
                 await ffmpeg.writeFile('recorded.webm', await fetchFile(blob))
                 await ffmpeg.exec(['-i', 'recorded.webm', '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', 'final.mp4'])
@@ -743,18 +787,18 @@ export default function EditorPage() {
         video.pause()
         await exportPromise
         setProgress(100)
-        setExportStatus('Berhasil')
-        addLog('Export canvas berhasil')
+        setExportStatus('Berhasil online')
+        addLog('Export canvas online berhasil')
       }
     } catch (e: any) {
-      addLog(`Export gagal: ${e.message}`)
+      addLog(`Export online gagal: ${e.message}`)
       setExportStatus(`Gagal: ${e.message}`)
       for (let i = progress; i <= 100; i += 10) { await new Promise(r => setTimeout(r, 100)); setProgress(i) }
     }
     setTimeout(() => { setShowExport(false); setProgress(0); setExportStatus('') }, 2000)
   }
 
-  const isGenerateEnabled = !!(videoUrl || youtubeInfo) && !isProcessing && !isYoutubeLoading
+  const isGenerateEnabled = !!(videoUrl || youtubeInfo) && !isProcessing && !isYoutubeLoading && !isUploading
 
   return (
     <div className="min-h-screen bg-[#FCFCF9] text-[#0A0A0A]">
@@ -778,44 +822,42 @@ export default function EditorPage() {
               <span className={`px-2 py-1 rounded-full border ${ffmpegLoaded ? 'bg-green-50 border-green-200 text-green-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
                 {ffmpegLoaded ? 'FFmpeg Ready' : 'FFmpeg Loading...'}
               </span>
-              <span className="px-2 py-1 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">{duration ? `${duration.toFixed(1)}s` : 'no duration'}</span>
+              <span className={`px-2 py-1 rounded-full border ${videoUrl ? 'bg-green-50 border-green-200 text-green-700' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{videoUrl ? 'Cloudinary ✓' : duration ? `${duration.toFixed(1)}s` : 'no video'}</span>
+              <span className="px-2 py-1 rounded-full bg-[#0A0A0A] text-white">ONLINE</span>
             </div>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={handleSaveProject} disabled={saving || (!videoUrl && !videoPreviewUrl)}><IconSave />{saving ? 'Menyimpan...' : 'Simpan'}</Button>
-            <Button size="sm" className="h-8 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] gap-1.5" onClick={() => selectedClip ? doExport() : handleTestPlay()} disabled={!videoUrl && !videoPreviewUrl}><IconDownload />{selectedClip ? 'Export' : 'Play'}</Button>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={handleSaveProject} disabled={saving || !videoUrl}><IconSave />{saving ? 'Menyimpan...' : 'Simpan'}</Button>
+            <Button size="sm" className="h-8 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] gap-1.5" onClick={() => selectedClip ? doExport() : handleTestPlay()} disabled={!videoUrl && !previewBlobUrl}><IconDownload />{selectedClip ? 'Export' : 'Play'}</Button>
           </div>
         </div>
       </div>
 
-      {/* Info bar jelas */}
       <div className="mx-auto max-w-[1600px] px-4 lg:px-6 pt-3">
         <div className="rounded-[12px] border border-[#E8E8E3] bg-white p-3 flex flex-wrap gap-2 items-center text-[11px]">
-          <span className="font-[700] flex items-center gap-1.5"><IconInfo />INFO FLOW:</span>
-          <span className={`px-2 py-1 rounded-full border ${videoUrl || youtubeInfo ? 'bg-green-50 border-green-200 text-green-700' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>1. Upload {videoUrl ? '✓' : ''}</span>
+          <span className="font-[700] flex items-center gap-1.5"><IconInfo />ONLINE FLOW:</span>
+          <span className={`px-2 py-1 rounded-full border ${previewBlobUrl ? 'bg-green-50 border-green-200 text-green-700' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>1. Upload {previewBlobUrl ? '✓' : ''} {isUploading ? 'Uploading...' : videoUrl ? 'Cloudinary ✓' : ''}</span>
           <span className="text-[#9B9B9B]">→</span>
-          <span className={`px-2 py-1 rounded-full border ${clips.length ? 'bg-green-50 border-green-200 text-green-700' : isGenerateEnabled ? 'bg-[#FFD60A] border-[#FFD60A] text-black animate-pulse' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>2. Generate {clips.length ? `✓ ${clips.length}` : isGenerateEnabled ? 'KLIK!' : ''}</span>
+          <span className={`px-2 py-1 rounded-full border ${clips.length ? 'bg-green-50 border-green-200 text-green-700' : isGenerateEnabled ? 'bg-[#FFD60A] border-[#FFD60A] text-black animate-pulse' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>2. Generate {clips.length ? `✓ ${clips.length}` : isGenerateEnabled ? 'KLIK!' : ''} {isProcessing ? 'AI...' : ''}</span>
           <span className="text-[#9B9B9B]">→</span>
           <span className={`px-2 py-1 rounded-full border ${selectedClip ? 'bg-green-50 border-green-200 text-green-700' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>3. Pilih Clip {selectedClip ? `✓ #${selectedClip.id}` : ''}</span>
           <span className="text-[#9B9B9B]">→</span>
           <span className={`px-2 py-1 rounded-full border ${selectedClip && isPlaying ? 'bg-green-50 border-green-200 text-green-700' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>4. Preview {isPlaying ? '▶' : ''}</span>
           <span className="text-[#9B9B9B]">→</span>
-          <span className="px-2 py-1 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">5. Simpan & Export</span>
-          <span className="ml-auto text-[10px] text-[#6B6B6B] hidden md:block">Semua berfungsi offline - tanpa backend wajib - log di bawah</span>
+          <span className="px-2 py-1 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">5. Simpan & Export Online</span>
+          <span className="ml-auto text-[10px] text-[#6B6B6B] hidden md:block">Full online - Cloudinary + /api/transcribe + Supabase</span>
         </div>
-        {/* Logs */}
         <div className="mt-2 rounded-[10px] bg-[#0A0A0A] text-white p-2.5 text-[10px] font-mono leading-[1.5] max-h-[80px] overflow-auto">
           {logs.map((l, i) => <div key={i} className={i === 0 ? 'text-[#FFD60A]' : 'text-white/60'}>{l}</div>)}
         </div>
       </div>
 
       <div className="mx-auto max-w-[1600px] px-4 lg:px-6 py-4 lg:py-6 grid grid-cols-12 gap-4 lg:gap-5">
-        {/* LEFT */}
         <div className="col-span-12 lg:col-span-3 space-y-4">
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase flex items-center gap-1.5"><IconUpload />Langkah 1 - Source Video</h2>
-              <span className={`text-[10px] font-[600] px-2 py-0.5 rounded-full border ${videoUrl ? 'bg-green-50 border-green-200 text-green-700' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{videoUrl ? '✓ Ada' : 'WAJIB'}</span>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase flex items-center gap-1.5"><IconUpload />Langkah 1 - Source Video Online</h2>
+              <span className={`text-[10px] font-[600] px-2 py-0.5 rounded-full border ${videoUrl ? 'bg-green-50 border-green-200 text-green-700' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{videoUrl ? '✓ Cloudinary' : isUploading ? 'Uploading...' : 'WAJIB ONLINE'}</span>
             </div>
-            <div className="text-[11px] text-[#6B6B6B] mb-3 leading-[1.5] flex gap-1.5"><IconInfo />Drop MP4/MOV atau klik kotak. Setelah upload, preview muncul di tengah. Lalu lanjut Langkah 2.</div>
+            <div className="text-[11px] text-[#6B6B6B] mb-3 leading-[1.5] flex gap-1.5"><IconInfo />Upload MP4/MOV ke Cloudinary online. Preview instant, lalu auto transcribe.</div>
             <div
               onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('video/')) handleFile(f) }}
               onDragOver={e => e.preventDefault()}
@@ -823,13 +865,13 @@ export default function EditorPage() {
               className={`rounded-[16px] border-2 border-dashed p-6 text-center cursor-pointer transition ${videoUrl ? 'border-green-300 bg-green-50' : 'border-[#E8E8E3] bg-[#FCFCF9] hover:border-[#0A0A0A] hover:bg-white'}`}
             >
               <div className={`mx-auto h-10 w-10 rounded-[12px] flex items-center justify-center ${videoUrl ? 'bg-green-600 text-white' : 'bg-[#0A0A0A] text-white'}`}>{videoUrl ? <IconCheck /> : <IconUpload />}</div>
-              <div className="mt-3 text-[13px] font-[600]">{videoUrl ? 'Video terupload - klik untuk ganti' : 'Drop video di sini atau klik'}</div>
-              <div className="text-[11px] text-[#6B6B6B] mt-1">{videoFile ? `${videoFile.name} • ${(videoFile.size/1024/1024).toFixed(1)}MB • ${duration ? duration.toFixed(1)+'s' : '...'}` : 'MP4, MOV hingga 2GB'}</div>
+              <div className="mt-3 text-[13px] font-[600]">{videoUrl ? 'Video terupload Cloudinary - klik ganti' : isUploading ? 'Uploading ke Cloudinary...' : 'Drop video di sini atau klik - online'}</div>
+              <div className="text-[11px] text-[#6B6B6B] mt-1">{videoFile ? `${videoFile.name} • ${(videoFile.size/1024/1024).toFixed(1)}MB • ${duration ? duration.toFixed(1)+'s' : '...'}` : 'MP4, MOV hingga 100MB - Cloudinary'}</div>
               <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
             </div>
 
             <div className="mt-4 space-y-2">
-              <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B] flex items-center gap-1"><IconVideo />Atau Tempel Link YouTube - berfungsi</label>
+              <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B] flex items-center gap-1"><IconVideo />Atau Tempel Link YouTube - online</label>
               <div className="flex gap-2">
                 <input value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleYoutube() } }} placeholder="youtube.com/watch?v=..." className="flex-1 h-9 rounded-full border border-[#E8E8E3] bg-white px-4 text-[12px] placeholder:text-[#9B9B9B] focus:outline-none focus:border-[#0A0A0A]" />
                 <Button size="sm" variant="secondary" className="h-9 px-3 text-[11px]" onClick={handlePasteClipboard}>Paste</Button>
@@ -844,19 +886,19 @@ export default function EditorPage() {
                       <div className="text-[11px] font-[600] leading-[1.3] line-clamp-2">{youtubeInfo.title}</div>
                       <div className="text-[10px] text-[#6B6B6B] mt-1">{youtubeInfo.author} • {youtubeInfo.duration || duration || '?'}s</div>
                       <div className="mt-1 flex gap-1">
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-[600] flex items-center gap-1"><IconCheck />Terdeteksi - berfungsi</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-[600] flex items-center gap-1"><IconCheck />Online terdeteksi</span>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2 text-[10px] text-[#6B6B6B]">Transcript: {youtubeInfo.transcript?.length || 0} kata - {youtubeInfo.downloadUrl ? 'video URL ada' : 'preview only'}</div>
+                  <div className="mt-2 text-[10px] text-[#6B6B6B]">Transcript: {youtubeInfo.transcript?.length || 0} kata - {youtubeInfo.downloadUrl ? 'video URL online' : 'thumbnail only'}</div>
                 </div>
               )}
-              {videoUrl && !youtubeInfo && (
+              {previewBlobUrl && !youtubeInfo && (
                 <div className="mt-3 rounded-[10px] bg-green-50 border border-green-200 p-2.5 text-[11px] text-green-800 space-y-1">
-                  <div className="flex items-center gap-2 font-[600]"><IconCheck />Video terupload - berfungsi</div>
+                  <div className="flex items-center gap-2 font-[600]"><IconCheck />{videoUrl ? 'Cloudinary ready - online' : 'Preview blob - uploading...'}</div>
                   <div>Nama: {videoFile?.name || projectTitle}</div>
-                  <div>Durasi: {duration ? `${duration.toFixed(1)}s` : 'loading...'} - Size: {videoFile ? `${(videoFile.size/1024/1024).toFixed(1)}MB` : '?'}</div>
-                  <div>Preview ada di tengah - klik Generate di Langkah 2</div>
+                  <div>Durasi: {duration ? `${duration.toFixed(1)}s` : 'loading...'} - {videoUrl ? `URL: ${videoUrl.slice(0,30)}...` : 'Uploading...'}</div>
+                  <div>{videoUrl ? 'Siap generate via /api/transcribe online' : 'Tunggu upload selesai'}</div>
                 </div>
               )}
             </div>
@@ -864,50 +906,49 @@ export default function EditorPage() {
 
           <Card className="p-4 border-2 border-[#0A0A0A] bg-[#0A0A0A] text-white">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase flex items-center gap-2"><IconSpark />Langkah 2 - Generate Clips</h2>
-              <span className={`text-[10px] font-[600] px-2 py-0.5 rounded-full ${clips.length ? 'bg-green-500 text-white' : isGenerateEnabled ? 'bg-[#FFD60A] text-black animate-pulse' : 'bg-white/20 text-white/60'}`}>{clips.length ? `✓ ${clips.length} clips` : isGenerateEnabled ? 'KLIK SEKARANG' : 'WAJIB KLIK'}</span>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase flex items-center gap-2"><IconSpark />Langkah 2 - Generate Clips Online</h2>
+              <span className={`text-[10px] font-[600] px-2 py-0.5 rounded-full ${clips.length ? 'bg-green-500 text-white' : isGenerateEnabled ? 'bg-[#FFD60A] text-black animate-pulse' : 'bg-white/20 text-white/60'}`}>{clips.length ? `✓ ${clips.length} clips` : isGenerateEnabled ? 'KLIK' : 'ONLINE'}</span>
             </div>
             <div className="text-[11px] text-white/70 leading-[1.5] mb-4 space-y-2">
-              <div className="flex gap-1.5"><IconInfo />Tombol besar di bawah ini WAJIB diklik setelah upload. Ini yang bikin 5 clips viral.</div>
-              <div>• Kalau upload file: AI baca durasi + bikin 5 clips otomatis (offline mock, tetap berfungsi)</div>
-              <div>• Kalau YouTube: fetch transcript + bikin 5 clips</div>
-              <div>• Semua offline, tanpa backend wajib - log di atas</div>
+              <div className="flex gap-1.5"><IconInfo />Tombol ini panggil /api/transcribe online - server yang buat transcript.</div>
+              <div>• Upload file → Cloudinary → auto transcribe online → 5 clips</div>
+              <div>• YouTube → /api/youtube → transcript → 5 clips</div>
             </div>
-            <Button className="w-full h-14 bg-white text-black hover:bg-[#FFD60A] text-[14px] font-[800] gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(255,255,255,0.2)]" disabled={!isGenerateEnabled} onClick={handleTranscribe}>
-              <IconFilm />{isProcessing ? 'MEMPROSES... BUAT 5 CLIPS' : clips.length ? `RE-GENERATE ${clips.length} CLIPS` : 'BUAT CLIP VIRAL SEKARANG - KLIK!'}
+            <Button className="w-full h-12 bg-white text-black hover:bg-[#FFD60A] text-[14px] font-[800] gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(255,255,255,0.2)]" disabled={!isGenerateEnabled} onClick={handleTranscribe}>
+              <IconFilm />{isProcessing ? 'TRANSCRIBE ONLINE...' : isUploading ? 'UPLOADING...' : clips.length ? `RE-GENERATE ${clips.length} CLIPS ONLINE` : 'BUAT CLIP VIRAL SEKARANG'}
             </Button>
             <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] text-white/50 text-center">
-              <div className="rounded-full bg-white/10 py-1.5 border border-white/10">AI Deteksi ✓</div>
+              <div className="rounded-full bg-white/10 py-1.5 border border-white/10">Cloudinary ✓</div>
+              <div className="rounded-full bg-white/10 py-1.5 border border-white/10">Transcribe ✓</div>
               <div className="rounded-full bg-white/10 py-1.5 border border-white/10">5 Clips ✓</div>
-              <div className="rounded-full bg-white/10 py-1.5 border border-white/10">Auto Hook ✓</div>
             </div>
             {!videoUrl && !youtubeInfo && (
-              <div className="mt-3 rounded-[10px] bg-amber-500/20 border border-amber-500/30 p-3 text-[11px] text-amber-200 flex gap-2"><IconInfo />Upload video dulu di Langkah 1 (kotak atas), baru tombol ini aktif. Drag & drop atau klik.</div>
+              <div className="mt-3 rounded-[10px] bg-amber-500/20 border border-amber-500/30 p-3 text-[11px] text-amber-200 flex gap-2"><IconInfo />Upload video dulu sampai Cloudinary URL muncul, baru generate.</div>
             )}
             {isGenerateEnabled && !clips.length && (
-              <div className="mt-3 rounded-[10px] bg-[#FFD60A] text-black p-3 text-[11px] font-[700] flex items-center gap-2 animate-pulse"><IconCheck />SIAP! KLIK TOMBOL BESAR DI ATAS UNTUK GENERATE - BERFUNGSI</div>
+              <div className="mt-3 rounded-[10px] bg-[#FFD60A] text-black p-3 text-[11px] font-[700] flex items-center gap-2 animate-pulse"><IconCheck />SIAP ONLINE! KLIK TOMBOL DI ATAS</div>
             )}
             {clips.length > 0 && (
-              <div className="mt-3 rounded-[10px] bg-green-500 text-white p-3 text-[11px] font-[600] flex items-center gap-2"><IconCheck />BERHASIL! {clips.length} clips dibuat - pilih di Langkah 3 - berfungsi</div>
+              <div className="mt-3 rounded-[10px] bg-green-500 text-white p-3 text-[11px] font-[600] flex items-center gap-2"><IconCheck />{clips.length} clips online - pilih di Langkah 3</div>
             )}
             {isProcessing && (
-              <div className="mt-3 rounded-[10px] bg-white/10 border border-white/20 p-3 text-[11px] text-white flex items-center gap-2"><div className="h-4 w-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />Sedang memproses AI... buat 5 clips viral - tunggu 2 detik - berfungsi</div>
+              <div className="mt-3 rounded-[10px] bg-white/10 border border-white/20 p-3 text-[11px] text-white flex items-center gap-2"><div className="h-4 w-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />Transcribe online... tunggu 2-5 detik</div>
             )}
           </Card>
 
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase flex items-center gap-1.5"><IconFilm />Langkah 3 - Hasil Clip ({clips.length}) - berfungsi</h2>
-              <span className={`text-[10px] font-[600] px-2 py-0.5 rounded-full ${clips.length ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-[#0A0A0A] text-white'}`}>{clips.length ? '✓ Ada' : 'AI Viral'}</span>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase flex items-center gap-1.5"><IconFilm />Langkah 3 - Hasil Clip ({clips.length}) Online</h2>
+              <span className={`text-[10px] font-[600] px-2 py-0.5 rounded-full ${clips.length ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-[#0A0A0A] text-white'}`}>{clips.length ? '✓ Online' : 'AI Online'}</span>
             </div>
-            <div className="text-[10px] text-[#6B6B6B] mb-2 flex gap-1"><IconInfo />Setelah Generate, 5 clips muncul di sini. Klik untuk preview di tengah.</div>
+            <div className="text-[10px] text-[#6B6B6B] mb-2 flex gap-1"><IconInfo />Hasil dari /api/transcribe online - 5 clips viral.</div>
             <div className="space-y-2 max-h-[360px] overflow-auto pr-1">
               {clips.length === 0 ? (
                 <div className="py-10 text-center border-2 border-dashed border-[#E8E8E3] rounded-[12px] bg-[#FCFCF9]">
                   <div className="mx-auto h-10 w-10 rounded-[10px] bg-[#F5F5F0] flex items-center justify-center text-[#9B9B9B]"><IconFilm /></div>
-                  <div className="mt-3 text-[12px] font-[600] text-[#6B6B6B]">Belum ada clip - belum generate</div>
-                  <div className="mt-1 text-[10px] text-[#9B9B9B]">Klik "BUAT CLIP VIRAL SEKARANG" di Langkah 2 (tombol hitam besar)</div>
-                  {videoUrl && <div className="mt-3 inline-block text-[10px] px-3 py-1 rounded-full bg-[#FFD60A] text-black font-[700] animate-pulse">Video sudah ada, tinggal klik tombol di atas!</div>}
+                  <div className="mt-3 text-[12px] font-[600] text-[#6B6B6B]">Belum ada clip online</div>
+                  <div className="mt-1 text-[10px] text-[#9B9B9B]">Upload → Cloudinary → Buat Clip Viral Sekarang</div>
+                  {videoUrl && <div className="mt-3 inline-block text-[10px] px-3 py-1 rounded-full bg-[#FFD60A] text-black font-[700] animate-pulse">Cloudinary ready, klik Generate!</div>}
                 </div>
               ) : clips.map(c => (
                 <button key={c.id} onClick={() => { setSelectedClip(c); setHook(c.hook); addLog(`Pilih clip ${c.id}: ${c.hook}`); if (videoRef.current) { videoRef.current.currentTime = c.start; videoRef.current.play().then(()=>setIsPlaying(true)).catch(()=>{}) } }} className={`w-full text-left rounded-[14px] border-2 p-3 transition ${selectedClip?.id === c.id ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white shadow-[0_4px_20px_rgba(0,0,0,0.2)]' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A] hover:shadow-[0_2px_10px_rgba(0,0,0,0.05)]'}`}>
@@ -917,7 +958,7 @@ export default function EditorPage() {
                   </div>
                   <div className="mt-2 text-[12px] font-[700] leading-[1.3] tracking-[-0.01em] line-clamp-2">{c.hook}</div>
                   <div className="mt-1.5 text-[10px] opacity-60 font-mono flex items-center gap-1"><IconPlay size={10} />{Math.floor(c.start / 60)}:{String(Math.floor(c.start % 60)).padStart(2, '0')} - {Math.floor(c.end / 60)}:{String(Math.floor(c.end % 60)).padStart(2, '0')}</div>
-                  <div className="mt-2 text-[9px] px-2 py-1 rounded-full bg-black/5 inline-block">{selectedClip?.id === c.id ? '✓ Dipilih - preview di tengah berfungsi' : 'Klik untuk preview - berfungsi'}</div>
+                  <div className="mt-2 text-[9px] px-2 py-1 rounded-full bg-black/5 inline-block">{selectedClip?.id === c.id ? '✓ Dipilih - preview online' : 'Klik untuk preview online'}</div>
                 </button>
               ))}
             </div>
@@ -927,27 +968,27 @@ export default function EditorPage() {
         <div className="col-span-12 lg:col-span-5 space-y-4">
           <Card className="p-3 lg:p-4">
             <div className="flex items-center justify-between mb-3 px-1">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase flex items-center gap-1.5"><IconVideo />Langkah 4 - Preview 9:16 - berfungsi</h2>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase flex items-center gap-1.5"><IconVideo />Langkah 4 - Preview 9:16 Online</h2>
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-[600] px-2 py-1 rounded-full bg-[#0A0A0A] text-white">1080x1920</span>
-                <button onClick={() => setLoopPreview(!loopPreview)} className={`text-[10px] font-[600] px-2 py-1 rounded-full border ${loopPreview ? 'bg-[#FFD60A] border-[#FFD60A] text-black' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{loopPreview ? 'Loop ON ✓' : 'Loop OFF'}</button>
+                <button onClick={() => setLoopPreview(!loopPreview)} className={`text-[10px] font-[600] px-2 py-1 rounded-full border ${loopPreview ? 'bg-[#FFD60A] border-[#FFD60A] text-black' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{loopPreview ? 'Loop ON' : 'Loop OFF'}</button>
               </div>
             </div>
 
-            <div className="text-[10px] text-[#6B6B6B] mb-2 px-1 flex gap-1"><IconInfo />Preview berfungsi: upload → generate → pilih clip → play. Canvas render subtitle sama kayak landing (shared lib).</div>
+            <div className="text-[10px] text-[#6B6B6B] mb-2 px-1 flex gap-1"><IconInfo />Preview online - canvas render subtitle shared lib.</div>
 
             <div className="relative rounded-[18px] bg-[#0A0A0A] overflow-hidden aspect-[9/16] max-h-[680px] mx-auto border-2 border-[#0A0A0A]">
-              {videoPreviewUrl && !selectedClip ? (
+              {previewBlobUrl && !selectedClip ? (
                 <>
-                  <video ref={previewVideoRef} src={videoPreviewUrl} className="absolute inset-0 w-full h-full object-contain bg-black" controls playsInline onLoadedMetadata={e => { const v = e.currentTarget; if (v.duration) setDuration(v.duration) }} />
+                  <video ref={previewVideoRef} src={previewBlobUrl} className="absolute inset-0 w-full h-full object-contain bg-black" controls playsInline onLoadedMetadata={e => { const v = e.currentTarget; if (v.duration) setDuration(v.duration) }} />
                   <div className="absolute top-3 left-3 right-3 flex justify-between pointer-events-none">
-                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-black/70 text-white backdrop-blur-md border border-white/10 font-[600]">Preview Upload ✓ - berfungsi</span>
-                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-[#FFD60A] text-black font-[700]">Klik Generate di Langkah 2</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-black/70 text-white backdrop-blur-md border border-white/10 font-[600]">Preview {videoUrl ? 'Cloudinary ✓' : 'Blob'} Online</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-[#FFD60A] text-black font-[700]">{isUploading ? 'Uploading...' : videoUrl ? 'Ready Generate' : 'Uploading...'}</span>
                   </div>
                   <div className="absolute bottom-3 left-3 right-3">
                     <div className="rounded-[10px] bg-white p-2.5 text-[11px]">
-                      <div className="font-[700]">Video terupload - preview berfungsi</div>
-                      <div className="text-[10px] text-[#6B6B6B] mt-1">Durasi: {duration ? `${duration.toFixed(1)}s` : '...'} - Sekarang klik "BUAT CLIP VIRAL SEKARANG" di Langkah 2 (kiri bawah hitam)</div>
+                      <div className="font-[700]">Video {videoUrl ? 'Cloudinary ready' : 'uploading...'}</div>
+                      <div className="text-[10px] text-[#6B6B6B] mt-1">Durasi: {duration ? `${duration.toFixed(1)}s` : '...'} - {videoUrl ? 'Klik Buat Clip Viral Sekarang' : 'Tunggu upload selesai'}</div>
                     </div>
                   </div>
                 </>
@@ -957,11 +998,11 @@ export default function EditorPage() {
                   <canvas ref={canvasRef} width={1080} height={1920} className="absolute inset-0 w-full h-full" />
 
                   {!isPlaying && selectedClip && (
-                    <button onClick={() => { videoRef.current?.play().then(()=>setIsPlaying(true)).catch(()=>{}); addLog('Play preview'); }} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[1px] gap-3">
+                    <button onClick={() => { videoRef.current?.play().then(()=>setIsPlaying(true)).catch(()=>{}); addLog('Play preview online'); }} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[1px] gap-3">
                       <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:scale-105 transition">
                         <IconPlay size={28} />
                       </div>
-                      <span className="text-[12px] font-[700] text-white bg-black/60 px-5 py-2 rounded-full backdrop-blur-md flex items-center gap-2 border border-white/20"><IconPlay size={14} />Putar Preview - berfungsi</span>
+                      <span className="text-[12px] font-[700] text-white bg-black/60 px-5 py-2 rounded-full backdrop-blur-md flex items-center gap-2 border border-white/20"><IconPlay size={14} />Putar Preview Online</span>
                       <span className="text-[10px] text-white/70 bg-black/40 px-3 py-1 rounded-full">Clip {selectedClip.id+1}: {selectedClip.hook.slice(0,20)}...</span>
                     </button>
                   )}
@@ -969,17 +1010,17 @@ export default function EditorPage() {
                   {!selectedClip && videoUrl && (
                     <>
                       {!isPlaying && (
-                        <button onClick={() => { videoRef.current?.play().then(()=>setIsPlaying(true)).catch(()=>{}); addLog('Play full video - berfungsi'); }} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[1px] gap-3">
+                        <button onClick={() => { videoRef.current?.play().then(()=>setIsPlaying(true)).catch(()=>{}); addLog('Play full video online'); }} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[1px] gap-3">
                           <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:scale-105 transition">
                             <IconPlay size={28} />
                           </div>
-                          <span className="text-[12px] font-[700] text-white bg-black/60 px-5 py-2 rounded-full backdrop-blur-md flex items-center gap-2 border border-white/20"><IconPlay size={14} />Putar Video Full - berfungsi</span>
-                          <span className="text-[10px] text-white/70 bg-black/40 px-3 py-1 rounded-full">Auto generate 5 clips dalam 1 detik...</span>
+                          <span className="text-[12px] font-[700] text-white bg-black/60 px-5 py-2 rounded-full backdrop-blur-md flex items-center gap-2 border border-white/20"><IconPlay size={14} />Putar Video Full Online</span>
+                          <span className="text-[10px] text-white/70 bg-black/40 px-3 py-1 rounded-full">Menunggu generate clips...</span>
                         </button>
                       )}
                       <div className="absolute top-[56px] left-3 right-3 pointer-events-none">
                         <div className="rounded-[10px] bg-[#FFD60A] text-black p-2.5 text-[11px] font-[700] flex items-center gap-2 border-2 border-black">
-                          <IconInfo />Video terupload ✓ - klik Play di atas untuk tes, atau tunggu auto generate 5 clips
+                          <IconInfo />Cloudinary ready online - klik Play atau tunggu auto transcribe
                         </div>
                       </div>
                     </>
@@ -990,7 +1031,7 @@ export default function EditorPage() {
                       <button onClick={() => isPlaying ? videoRef.current?.pause() : videoRef.current?.play()} className="h-9 w-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition">
                         {isPlaying ? <IconPause size={14} /> : <IconPlay size={14} />}
                       </button>
-                      <Button size="sm" variant="secondary" className="h-8 text-[10px] bg-white/20 text-white border-white/20 hover:bg-white hover:text-black backdrop-blur-md gap-1" onClick={handleTestPlay}><IconRefresh />Tes Ulang ✓</Button>
+                      <Button size="sm" variant="secondary" className="h-8 text-[10px] bg-white/20 text-white border-white/20 hover:bg-white hover:text-black backdrop-blur-md gap-1" onClick={handleTestPlay}><IconRefresh />Tes Ulang</Button>
                       <div className="flex-1">
                         <input type="range" min={clipStartEdit} max={clipEndEdit} step={0.1} value={currentTime} onChange={e => { const t = parseFloat(e.target.value); setCurrentTime(t); if (videoRef.current) videoRef.current.currentTime = t }} className="w-full accent-[#FFD60A] h-1.5" />
                         <div className="mt-1.5 flex justify-between text-[10px] font-mono text-white/80">
@@ -1008,8 +1049,8 @@ export default function EditorPage() {
                     </div>
                   </div>
                   <div className="absolute top-3 left-3 right-3 flex justify-between pointer-events-none">
-                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10 font-[600]">{style.name} - {ANIMATIONS[anim]?.name} • {style.font} ✓</span>
-                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-[#FFD60A] text-black font-[700]">PREVIEW ✓ {style.usage}</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10 font-[600]">{style.name} - {ANIMATIONS[anim]?.name} • {style.font}</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-[#FFD60A] text-black font-[700]">ONLINE {style.usage}</span>
                   </div>
                 </>
               ) : youtubeInfo ? (
@@ -1017,25 +1058,25 @@ export default function EditorPage() {
                   <img src={youtubeInfo.thumbnail} alt="youtube preview" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
                   <div className="absolute top-3 left-3">
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-green-500 text-white font-[700]">YouTube ✓ berfungsi</span>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-green-500 text-white font-[700]">YouTube Online</span>
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="rounded-[12px] bg-white p-3 border-2 border-green-200">
                       <div className="text-[12px] font-[700] line-clamp-2">{youtubeInfo.title}</div>
-                      <div className="text-[10px] text-[#6B6B6B] mt-1">Preview YouTube • {clips.length} clips {clips.length ? '✓ berfungsi' : ''}</div>
-                      <Button size="sm" className="mt-3 w-full h-9 text-[11px] bg-[#0A0A0A] text-white gap-1.5 font-[700]" onClick={handleTranscribe}><IconSpark />{clips.length ? `RE-GENERATE ${clips.length} CLIPS ✓` : 'BUAT CLIP SEKARANG - KLIK ✓'}</Button>
+                      <div className="text-[10px] text-[#6B6B6B] mt-1">Preview YouTube Online • {clips.length} clips</div>
+                      <Button size="sm" className="mt-3 w-full h-9 text-[11px] bg-[#0A0A0A] text-white gap-1.5 font-[700]" onClick={handleTranscribe}><IconSpark />{clips.length ? `RE-GENERATE ${clips.length} CLIPS ONLINE` : 'BUAT CLIP SEKARANG ONLINE'}</Button>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-[#0A0A0A]">
                   <div className="h-20 w-20 rounded-[20px] border-2 border-dashed border-white/20 flex items-center justify-center text-white/30"><IconPlay size={28} /></div>
-                  <div className="mt-5 text-[14px] font-[700] text-white">Belum ada video - Langkah 1</div>
-                  <div className="mt-2 text-[11px] text-white/40 max-w-[240px] leading-[1.5]">Upload video di Langkah 1 (kotak kiri atas). Setelah upload, preview muncul di sini. Lalu klik Generate di Langkah 2. Semua langkah berfungsi, ada log di atas.</div>
+                  <div className="mt-5 text-[14px] font-[700] text-white">Belum ada video online</div>
+                  <div className="mt-2 text-[11px] text-white/40 max-w-[240px] leading-[1.5]">Upload video ke Cloudinary online di Langkah 1. Preview muncul di sini. Semua via API online.</div>
                   <div className="mt-4 flex gap-2">
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 border border-white/10 text-white/50">1. Upload</span>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 border border-white/10 text-white/50">2. Generate</span>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 border border-white/10 text-white/50">3. Pilih</span>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 border border-white/10 text-white/50">Cloudinary</span>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 border border-white/10 text-white/50">Transcribe</span>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-white/10 border border-white/10 text-white/50">Supabase</span>
                   </div>
                 </div>
               )}
@@ -1044,19 +1085,19 @@ export default function EditorPage() {
             {selectedClip && (
               <div className="mt-3 p-3 rounded-[12px] bg-[#F5F5F0] border-2 border-[#E8E8E3]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-[800] tracking-[0.06em] uppercase flex items-center gap-1"><IconRefresh />Atur Durasi - Tes Sebelum Simpan - berfungsi</span>
+                  <span className="text-[11px] font-[800] tracking-[0.06em] uppercase flex items-center gap-1"><IconRefresh />Atur Durasi Online - Tes Sebelum Simpan</span>
                   <div className="flex gap-1.5">
-                    <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 font-[600]" onClick={handleTestPlay}><IconPlay size={10} />Tes Play ✓</Button>
-                    <Button size="sm" variant="outline" className="h-7 text-[10px] bg-[#0A0A0A] text-white gap-1 font-[600]" onClick={applyDurationEdit}><IconCheck />Terapkan ✓</Button>
+                    <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 font-[600]" onClick={handleTestPlay}><IconPlay size={10} />Tes Play</Button>
+                    <Button size="sm" variant="outline" className="h-7 text-[10px] bg-[#0A0A0A] text-white gap-1 font-[600]" onClick={applyDurationEdit}><IconCheck />Terapkan</Button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-[700] text-[#6B6B6B]">Mulai (detik) - berfungsi</label>
+                    <label className="text-[10px] font-[700] text-[#6B6B6B]">Mulai (detik)</label>
                     <input type="number" step={0.1} value={clipStartEdit} onChange={e => setClipStartEdit(parseFloat(e.target.value) || 0)} className="mt-1 w-full h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[12px] font-mono focus:border-[#0A0A0A] focus:outline-none" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-[700] text-[#6B6B6B]">Selesai (detik) - berfungsi</label>
+                    <label className="text-[10px] font-[700] text-[#6B6B6B]">Selesai (detik)</label>
                     <input type="number" step={0.1} value={clipEndEdit} onChange={e => setClipEndEdit(parseFloat(e.target.value) || 0)} className="mt-1 w-full h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[12px] font-mono focus:border-[#0A0A0A] focus:outline-none" />
                   </div>
                 </div>
@@ -1065,7 +1106,7 @@ export default function EditorPage() {
                   <input type="range" min={0} max={duration || 100} step={0.1} value={clipEndEdit} onChange={e => setClipEndEdit(parseFloat(e.target.value))} className="w-full accent-[#FFD60A] h-2 mt-2" />
                   <div className="mt-2 flex justify-between text-[10px] font-mono text-[#6B6B6B]">
                     <span>0s</span>
-                    <span className="font-[800] text-[#0A0A0A] bg-[#FFD60A] px-2 py-0.5 rounded-full">{(clipEndEdit - clipStartEdit).toFixed(1)}s durasi ✓</span>
+                    <span className="font-[800] text-[#0A0A0A] bg-[#FFD60A] px-2 py-0.5 rounded-full">{(clipEndEdit - clipStartEdit).toFixed(1)}s durasi</span>
                     <span>{(duration || 0).toFixed(1)}s total</span>
                   </div>
                 </div>
@@ -1073,12 +1114,12 @@ export default function EditorPage() {
             )}
 
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <Button className="h-11 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] text-[12px] gap-1.5 font-[700] border-2 border-[#0A0A0A]" disabled={!videoUrl && !videoPreviewUrl} onClick={handleTestPlay}><IconPlay size={14} />{selectedClip ? 'Tes Preview ✓' : 'Play Video ✓'}</Button>
-              <Button variant="outline" className="h-11 text-[12px] gap-1.5 font-[600] border-2" disabled={(!clips.length && !videoUrl) || saving} onClick={handleSaveProject}><IconSave />{saving ? 'Menyimpan...' : 'Simpan ✓'}</Button>
-              <Button className="h-11 bg-[#FFD60A] text-black hover:bg-[#FFC700] text-[12px] font-[800] gap-1.5 border-2 border-[#FFD60A]" disabled={!selectedClip && !videoUrl} onClick={() => selectedClip ? doExport() : handleTestPlay()}><IconDownload />{selectedClip ? 'Export ✓' : 'Play ✓'}</Button>
+              <Button className="h-11 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] text-[12px] gap-1.5 font-[700] border-2 border-[#0A0A0A]" disabled={!videoUrl && !previewBlobUrl} onClick={handleTestPlay}><IconPlay size={14} />{selectedClip ? 'Tes Preview' : 'Play Video'}</Button>
+              <Button variant="outline" className="h-11 text-[12px] gap-1.5 font-[600] border-2" disabled={!clips.length || saving || !videoUrl} onClick={handleSaveProject}><IconSave />{saving ? 'Menyimpan...' : 'Simpan Online'}</Button>
+              <Button className="h-11 bg-[#FFD60A] text-black hover:bg-[#FFC700] text-[12px] font-[800] gap-1.5 border-2 border-[#FFD60A]" disabled={!selectedClip} onClick={doExport}><IconDownload />Export Online</Button>
             </div>
             <div className="mt-2 text-[10px] text-[#6B6B6B] text-center leading-[1.4]">
-              <span className="font-[700]">Semua berfungsi:</span> Upload ✓ Generate 5 clips ✓ Pilih ✓ Preview canvas ✓ Tes Play ✓ Simpan lokal/cloud ✓ Export MP4/WebM ✓
+              <span className="font-[700]">Full online:</span> Cloudinary upload ✓ Transcribe API ✓ Supabase save ✓ FFmpeg export ✓
             </div>
           </Card>
         </div>
@@ -1086,16 +1127,16 @@ export default function EditorPage() {
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <Card className="p-5 border-2">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[12px] font-[800] tracking-[0.06em] uppercase flex items-center gap-1.5"><IconPalette />Gaya Subtitle - 12 Style - berfungsi</h2>
-              <span className="text-[10px] font-[700] px-2.5 py-1 rounded-full bg-[#0A0A0A] text-white">{Object.keys(STYLES).length} STYLE ✓</span>
+              <h2 className="text-[12px] font-[800] tracking-[0.06em] uppercase flex items-center gap-1.5"><IconPalette />Gaya Subtitle - 12 Style Online</h2>
+              <span className="text-[10px] font-[700] px-2.5 py-1 rounded-full bg-[#0A0A0A] text-white">{Object.keys(STYLES).length} STYLE</span>
             </div>
-            <div className="text-[10px] text-[#6B6B6B] mb-3 flex gap-1"><IconInfo />Klik untuk ganti style - preview di tengah langsung berubah - sama kayak landing - berfungsi</div>
+            <div className="text-[10px] text-[#6B6B6B] mb-3 flex gap-1"><IconInfo />Klik untuk ganti style - preview canvas online langsung berubah.</div>
 
             <div className="grid grid-cols-2 gap-2 mb-4">
               {Object.entries(STYLES).map(([k, s]: any) => {
                 const isActive = styleKey === k
                 return (
-                  <button key={k} onClick={() => { setStyleKey(k); addLog(`Style: ${s.name}`); }} className={`text-left rounded-[14px] border-2 p-2.5 transition relative overflow-hidden ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white shadow-[0_4px_15px_rgba(0,0,0,0.2)]' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A] hover:shadow-[0_2px_8px_rgba(0,0,0,0.05)]'}`}>
+                  <button key={k} onClick={() => { setStyleKey(k); addLog(`Style online: ${s.name}`); }} className={`text-left rounded-[14px] border-2 p-2.5 transition relative overflow-hidden ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white shadow-[0_4px_15px_rgba(0,0,0,0.2)]' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A] hover:shadow-[0_2px_8px_rgba(0,0,0,0.05)]'}`}>
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="text-[11px] font-[800] tracking-[-0.01em]">{s.name.toUpperCase()}</div>
@@ -1115,7 +1156,7 @@ export default function EditorPage() {
                         <div style={{ color: s.highlight, fontSize: '11px', marginTop: '2px' }}>{s.previewSub}</div>
                       </div>
                     </div>
-                    <div className="mt-1 text-[8px] text-center opacity-60">{isActive ? '✓ Aktif - berfungsi' : 'Klik - berfungsi'}</div>
+                    <div className="mt-1 text-[8px] text-center opacity-60">{isActive ? '✓ Aktif online' : 'Klik online'}</div>
                     {isActive && <div className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-[#FFD60A] animate-pulse border-2 border-white" />}
                   </button>
                 )
@@ -1125,15 +1166,15 @@ export default function EditorPage() {
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-[800] tracking-[0.08em] uppercase text-[#6B6B6B] flex items-center gap-1"><IconSpark />Animasi - 10 Animasi - berfungsi</label>
-                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#F5F5F0] border-2 border-[#E8E8E3] font-[700]">{Object.keys(ANIMATIONS).length} ANIM ✓</span>
+                  <label className="text-[10px] font-[800] tracking-[0.08em] uppercase text-[#6B6B6B] flex items-center gap-1"><IconSpark />Animasi - 10 Animasi Online</label>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#F5F5F0] border-2 border-[#E8E8E3] font-[700]">{Object.keys(ANIMATIONS).length} ANIM</span>
                 </div>
-                <div className="text-[10px] text-[#6B6B6B] mt-1 mb-2">Klik animasi - preview langsung animasi - berfungsi</div>
+                <div className="text-[10px] text-[#6B6B6B] mt-1 mb-2">Klik animasi - preview online langsung animasi.</div>
                 <div className="grid grid-cols-3 gap-1.5">
                   {Object.entries(ANIMATIONS).map(([k, a]: any) => {
                     const isActive = anim === k
                     return (
-                      <button key={k} onClick={() => { setAnim(k); addLog(`Anim: ${a.name}`); }} className={`rounded-[10px] border-2 p-2 text-left transition ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
+                      <button key={k} onClick={() => { setAnim(k); addLog(`Anim online: ${a.name}`); }} className={`rounded-[10px] border-2 p-2 text-left transition ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-[700]">{a.name}</span>
                           <span className={`text-[7px] px-1 py-0.5 rounded-full font-[700] ${isActive ? 'bg-white text-black' : 'bg-[#F5F5F0]'}`}>{a.usage}</span>
@@ -1162,37 +1203,37 @@ export default function EditorPage() {
 
               <div className="pt-3 border-t-2 border-[#E8E8E3]">
                 <button onClick={() => setShowCustom(!showCustom)} className="w-full flex items-center justify-between text-[11px] font-[800] tracking-[0.06em] uppercase">
-                  <span className="flex items-center gap-1.5"><IconPalette />Custom Warna dan Font - berfungsi</span>
-                  <span className={`text-[10px] px-2.5 py-1 rounded-full border-2 font-[700] ${showCustom ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{showCustom ? 'Tutup ✓' : 'Buka ✓'}</span>
+                  <span className="flex items-center gap-1.5"><IconPalette />Custom Warna dan Font Online</span>
+                  <span className={`text-[10px] px-2.5 py-1 rounded-full border-2 font-[700] ${showCustom ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{showCustom ? 'Tutup' : 'Buka'}</span>
                 </button>
 
                 {showCustom && (
                   <div className="mt-3 space-y-3 p-3 rounded-[12px] bg-[#F5F5F0] border-2 border-[#E8E8E3]">
-                    <div className="text-[10px] text-[#6B6B6B]">Ganti warna - preview langsung berubah - berfungsi offline</div>
+                    <div className="text-[10px] text-[#6B6B6B]">Ganti warna online - preview langsung berubah.</div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[10px] font-[700]">Warna Teks ✓</label>
+                        <label className="text-[10px] font-[700]">Warna Teks</label>
                         <div className="mt-1 flex gap-2">
-                          <input type="color" value={customTextColor || (baseStyle.text === 'transparent' ? '#FFFFFF' : baseStyle.text)} onChange={e => { setCustomTextColor(e.target.value); addLog(`Teks: ${e.target.value}`); }} className="h-9 w-9 rounded-full border-2 border-[#E8E8E3] cursor-pointer" />
+                          <input type="color" value={customTextColor || (baseStyle.text === 'transparent' ? '#FFFFFF' : baseStyle.text)} onChange={e => { setCustomTextColor(e.target.value); addLog(`Teks online: ${e.target.value}`); }} className="h-9 w-9 rounded-full border-2 border-[#E8E8E3] cursor-pointer" />
                           <input value={customTextColor} onChange={e => setCustomTextColor(e.target.value)} placeholder={baseStyle.text} className="flex-1 h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
                         </div>
                       </div>
                       <div>
-                        <label className="text-[10px] font-[700]">Warna Highlight ✓</label>
+                        <label className="text-[10px] font-[700]">Warna Highlight</label>
                         <div className="mt-1 flex gap-2">
-                          <input type="color" value={customHighlightColor || baseStyle.highlight} onChange={e => { setCustomHighlightColor(e.target.value); addLog(`Highlight: ${e.target.value}`); }} className="h-9 w-9 rounded-full border-2 border-[#E8E8E3] cursor-pointer" />
+                          <input type="color" value={customHighlightColor || baseStyle.highlight} onChange={e => { setCustomHighlightColor(e.target.value); addLog(`Highlight online: ${e.target.value}`); }} className="h-9 w-9 rounded-full border-2 border-[#E8E8E3] cursor-pointer" />
                           <input value={customHighlightColor} onChange={e => setCustomHighlightColor(e.target.value)} placeholder={baseStyle.highlight} className="flex-1 h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
                         </div>
                       </div>
                       <div>
-                        <label className="text-[10px] font-[700]">Warna Stroke ✓</label>
+                        <label className="text-[10px] font-[700]">Warna Stroke</label>
                         <div className="mt-1 flex gap-2">
                           <input type="color" value={customStrokeColor || (baseStyle.stroke === 'transparent' ? '#000000' : baseStyle.stroke)} onChange={e => setCustomStrokeColor(e.target.value)} className="h-9 w-9 rounded-full border-2 border-[#E8E8E3] cursor-pointer" />
                           <input value={customStrokeColor} onChange={e => setCustomStrokeColor(e.target.value)} placeholder={baseStyle.stroke} className="flex-1 h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
                         </div>
                       </div>
                       <div>
-                        <label className="text-[10px] font-[700]">Warna Background ✓</label>
+                        <label className="text-[10px] font-[700]">Warna Background</label>
                         <div className="mt-1 flex gap-2">
                           <input type="color" value={customBgColor && customBgColor !== 'transparent' ? customBgColor : '#FFD60A'} onChange={e => setCustomBgColor(e.target.value)} className="h-9 w-9 rounded-full border-2 border-[#E8E8E3] cursor-pointer" />
                           <input value={customBgColor} onChange={e => setCustomBgColor(e.target.value)} placeholder="transparent" className="flex-1 h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
@@ -1201,20 +1242,20 @@ export default function EditorPage() {
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-[700]">Font Keluarga - {FONTS.length} Font ✓ berfungsi</label>
-                      <select value={customFont} onChange={e => { setCustomFont(e.target.value); addLog(`Font: ${e.target.value}`); }} className="mt-1 w-full h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[11px] font-[600]">
+                      <label className="text-[10px] font-[700]">Font Keluarga - {FONTS.length} Font Online</label>
+                      <select value={customFont} onChange={e => { setCustomFont(e.target.value); addLog(`Font online: ${e.target.value}`); }} className="mt-1 w-full h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[11px] font-[600]">
                         <option value="">Default ({baseStyle.font})</option>
                         {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                       </select>
                     </div>
 
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1 h-8 text-[10px] font-[700] border-2" onClick={() => { setCustomTextColor(''); setCustomHighlightColor(''); setCustomStrokeColor(''); setCustomBgColor(''); setCustomFont(''); addLog('Reset custom'); }}>Reset ✓</Button>
-                      <Button size="sm" className="flex-1 h-8 text-[10px] bg-[#0A0A0A] text-white gap-1 font-[700]" onClick={() => { setShowCustom(false); addLog('Terapkan custom'); }}><IconCheck />Terapkan ✓</Button>
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-[10px] font-[700] border-2" onClick={() => { setCustomTextColor(''); setCustomHighlightColor(''); setCustomStrokeColor(''); setCustomBgColor(''); setCustomFont(''); addLog('Reset custom online'); }}>Reset</Button>
+                      <Button size="sm" className="flex-1 h-8 text-[10px] bg-[#0A0A0A] text-white gap-1 font-[700]" onClick={() => { setShowCustom(false); addLog('Terapkan custom online'); }}><IconCheck />Terapkan</Button>
                     </div>
 
                     <div className="rounded-[8px] bg-white border-2 border-[#E8E8E3] p-2.5">
-                      <div className="text-[10px] font-[700] mb-1.5">Preview Custom Warna ✓ berfungsi - sama kayak showcase</div>
+                      <div className="text-[10px] font-[700] mb-1.5">Preview Custom Online - shared lib</div>
                       <div className="rounded-[8px] h-[64px] flex items-center justify-center border-2" style={{ background: baseStyle.bgPreview }}>
                         <div className="font-[900] text-[16px]" style={{
                           color: style.text === 'transparent' ? 'transparent' : style.text,
@@ -1232,18 +1273,18 @@ export default function EditorPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-[800] tracking-[0.08em] uppercase text-[#6B6B6B]">Posisi ✓ berfungsi</label>
-                  <select value={pos} onChange={e => { setPos(e.target.value as any); addLog(`Posisi: ${e.target.value}`); }} className="mt-1.5 w-full h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[11px] font-[600]">
-                    <option value="top">ATAS ✓</option>
-                    <option value="center">TENGAH ✓</option>
-                    <option value="bottom">BAWAH ✓</option>
+                  <label className="text-[10px] font-[800] tracking-[0.08em] uppercase text-[#6B6B6B]">Posisi</label>
+                  <select value={pos} onChange={e => { setPos(e.target.value as any); addLog(`Posisi online: ${e.target.value}`); }} className="mt-1.5 w-full h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[11px] font-[600]">
+                    <option value="top">ATAS</option>
+                    <option value="center">TENGAH</option>
+                    <option value="bottom">BAWAH</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-[800] tracking-[0.08em] uppercase text-[#6B6B6B]">Kata per Baris ✓</label>
+                  <label className="text-[10px] font-[800] tracking-[0.08em] uppercase text-[#6B6B6B]">Kata per Baris</label>
                   <div className="mt-1.5 grid grid-cols-4 gap-1">
                     {[1, 2, 3, 4].map(n => (
-                      <button key={n} onClick={() => { setWpl(n); addLog(`WPL: ${n}`); }} className={`h-9 rounded-full text-[11px] font-[700] border-2 ${wpl === n ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>{n} ✓</button>
+                      <button key={n} onClick={() => { setWpl(n); addLog(`WPL online: ${n}`); }} className={`h-9 rounded-full text-[11px] font-[700] border-2 ${wpl === n ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>{n}</button>
                     ))}
                   </div>
                 </div>
@@ -1251,38 +1292,37 @@ export default function EditorPage() {
 
               <div>
                 <div className="flex justify-between">
-                  <label className="text-[10px] font-[800] tracking-[0.08em] uppercase text-[#6B6B6B]">Ukuran Font ✓ berfungsi</label>
-                  <span className="text-[10px] font-mono font-[800] bg-[#FFD60A] px-2 py-0.5 rounded-full">{fontSize}px ✓</span>
+                  <label className="text-[10px] font-[800] tracking-[0.08em] uppercase text-[#6B6B6B]">Ukuran Font</label>
+                  <span className="text-[10px] font-mono font-[800] bg-[#FFD60A] px-2 py-0.5 rounded-full">{fontSize}px</span>
                 </div>
                 <input type="range" min={36} max={120} value={fontSize} onChange={e => { setFontSize(Number(e.target.value)); }} className="w-full mt-2 accent-[#0A0A0A] h-2" />
               </div>
 
               <div>
-                <label className="text-[10px] font-[800] tracking-[0.08em] uppercase text-[#6B6B6B]">Judul Hook - AI Viral ✓ berfungsi</label>
+                <label className="text-[10px] font-[800] tracking-[0.08em] uppercase text-[#6B6B6B]">Judul Hook - AI Viral Online</label>
                 <div className="mt-1.5 flex gap-2">
                   <input value={hook} onChange={e => setHook(e.target.value)} placeholder="Tulis hook viral..." className="flex-1 h-9 rounded-full border-2 border-[#E8E8E3] bg-white px-3 text-[11px] focus:outline-none focus:border-[#0A0A0A] font-[500]" />
                   <Button size="sm" className="h-9 px-4 text-[10px] bg-[#0A0A0A] text-white gap-1 font-[700]" onClick={handleAiHook} disabled={aiLoading || !selectedClip}>
-                    <IconSpark />{aiLoading ? '...' : 'AI ✓'}
+                    <IconSpark />{aiLoading ? '...' : 'AI'}
                   </Button>
                 </div>
-                <div className="mt-1 text-[9px] text-[#9B9B9B]">AI Grok via backend secure - fallback random hook - berfungsi</div>
+                <div className="mt-1 text-[9px] text-[#9B9B9B]">AI Grok via backend secure - online</div>
               </div>
             </div>
           </Card>
 
           <Card className="p-4 bg-[#0A0A0A] text-white border-2 border-[#0A0A0A]">
-            <h3 className="text-[11px] font-[800] tracking-[0.06em] uppercase flex items-center gap-1.5"><IconCheck />Semua Fitur Editor Berfungsi ✓ - Info Jelas</h3>
+            <h3 className="text-[11px] font-[800] tracking-[0.06em] uppercase flex items-center gap-1.5"><IconCheck />Full Online Mode - No Offline</h3>
             <div className="mt-3 text-[11px] leading-[1.6] text-white/70 space-y-1.5">
-              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Langkah 1 Upload:</b> Drop/klik MP4, preview langsung muncul di tengah, duration auto detect - berfungsi offline</span></div>
-              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Langkah 2 Generate:</b> Tombol hitam besar h-14 "BUAT CLIP VIRAL SEKARANG" - selalu buat 5 clips walau offline mock - berfungsi</span></div>
-              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Langkah 3 Pilih:</b> 5 clips muncul dengan hook, score, durasi, words count - klik untuk preview - berfungsi</span></div>
-              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Langkah 4 Preview:</b> Canvas 1080x1920 render subtitle sama kayak landing (shared lib), play/pause, loop, speed, tes ulang - berfungsi</span></div>
-              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Langkah 5 Simpan Export:</b> Simpan lokal jika belum login, cloud jika login, export MP4 via FFmpeg atau WebM via canvas - berfungsi</span></div>
-              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Custom:</b> 12 style + 10 animasi + 8 font + custom warna teks/highlight/stroke/bg - semua preview live - berfungsi</span></div>
-              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>YouTube:</b> Paste link → Go → thumbnail + title + transcript → generate clips → preview - berfungsi</span></div>
+              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Langkah 1 Online:</b> Upload ke Cloudinary via /api/upload - real URL, bukan blob - durasi auto detect</span></div>
+              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Langkah 2 Online:</b> /api/transcribe server-side - Groq / expanded - 5 clips dari transcript real</span></div>
+              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Langkah 3 Online:</b> 5 clips dari server - pilih untuk preview canvas 1080x1920</span></div>
+              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Langkah 4 Online:</b> Canvas render subtitle shared lib - play/pause, loop, speed</span></div>
+              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>Langkah 5 Online:</b> Simpan ke Supabase projects/clips - harus login - export MP4 via FFmpeg online</span></div>
+              <div className="flex gap-2"><span className="text-[#FFD60A]">✓</span><span><b>YouTube Online:</b> /api/youtube oEmbed + Cobalt + transcript server</span></div>
               <div className="mt-3 p-2.5 rounded-[10px] bg-white/10 border border-white/10 text-[10px]">
-                <div className="font-[700] text-white">Log real-time di atas - semua aksi tercatat</div>
-                <div className="text-white/50 mt-1">Kalau ada yang gak berfungsi, cek log hitam di atas - semua error tampil jelas</div>
+                <div className="font-[700] text-white">Log online di atas - semua via API</div>
+                <div className="text-white/50 mt-1">Tidak ada fallback offline - kalau gagal, tampil error real</div>
               </div>
             </div>
           </Card>
@@ -1293,13 +1333,13 @@ export default function EditorPage() {
         <div className="fixed inset-0 z-50 bg-[#0A0A0A]/70 backdrop-blur-xl flex items-center justify-center p-4">
           <Card className="w-full max-w-[360px] p-6 text-center border-2">
             <div className="mx-auto h-14 w-14 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center font-[800] animate-pulse text-[20px]">A</div>
-            <div className="mt-4 text-[16px] font-[800]">Mengekspor clip - berfungsi</div>
+            <div className="mt-4 text-[16px] font-[800]">Mengekspor clip online</div>
             <div className="text-[12px] text-[#6B6B6B] mt-1">{STYLES[styleKey]?.name} - {ANIMATIONS[anim]?.name} - {hook.slice(0, 30)}</div>
             <div className="mt-1 text-[11px] text-[#9B9B9B]">{exportStatus} - {(clipEndEdit - clipStartEdit).toFixed(1)}s - {fontSize}px</div>
             <div className="mt-5 h-2 rounded-full bg-[#F5F5F0] overflow-hidden border">
               <div className="h-full bg-[#0A0A0A] transition-all duration-300" style={{ width: `${progress}%` }} />
             </div>
-            <div className="mt-2 text-[11px] font-mono font-[700]">{progress}% - Siap unduh ✓</div>
+            <div className="mt-2 text-[11px] font-mono font-[700]">{progress}% - Online</div>
           </Card>
         </div>
       )}
