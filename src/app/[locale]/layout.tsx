@@ -1,6 +1,8 @@
 import { getMessages, isValidLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { notFound } from "next/navigation";
 import { Analytics } from "@/components/analytics";
+import PromoPopup from "@/components/promo-popup";
+import MaintenanceGuard from "@/components/maintenance-guard";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
@@ -57,8 +59,9 @@ export default async function LocaleLayout({
   const isId = locale === 'id'
 
   return (
-    <>
+    <MaintenanceGuard>
       {children}
+      <PromoPopup />
       <Analytics />
       <footer className="border-t border-[#E8E8E3] bg-[#FCFCF9] mt-auto">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8 py-10">
@@ -118,6 +121,6 @@ export default async function LocaleLayout({
           </div>
         </div>
       </footer>
-    </>
+    </MaintenanceGuard>
   )
 }
