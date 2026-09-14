@@ -219,7 +219,7 @@ export function SubtitleShowcase({ locale = 'id' }: { locale?: string }) {
               <div className="mt-4 rounded-[12px] bg-black/50 border border-white/5 p-3">
                 <div className="text-[10px] font-[600] text-white/60 uppercase tracking-[0.06em]">{isId ? 'Preview Real' : 'Real Preview'}</div>
                 <div className="mt-1 text-[11px] leading-[1.5] text-white/40">
-                  {isId ? 'Rendering pakai Canvas API sama kayak export final. FFmpeg.wasm untuk trim + convert MP4. Semua animasi pakai cubic-bezier(0.34, 1.56, 0.64, 1) biar bouncy.' : 'Rendering with Canvas API same as final export. FFmpeg.wasm for trim + MP4 convert. All animations use cubic-bezier for bouncy feel.'}
+                  {isId ? 'Rendering pakai teknologi browser sama kayak export final. Semua animasi pakai kurva bouncy biar hidup.' : 'Rendering with browser tech same as final export. All animations use bouncy curve for lively feel.'}
                 </div>
               </div>
             </div>

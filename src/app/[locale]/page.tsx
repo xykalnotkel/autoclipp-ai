@@ -56,7 +56,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
           <div className="mt-6 flex flex-col md:flex-row gap-2 md:items-center justify-between text-[11px] text-[#6B6B6B]">
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-              {isId ? 'Semua stats real dari D1 • 2.4M+ clips • 98.3% akurasi • Rating 4.9/5 real • Pembayaran QRIS/DANA terverifikasi • Dibuat solo dev XySpace + Agent' : 'All stats real from D1 • 2.4M+ clips • 98.3% accuracy • Real rating 4.9/5 • QRIS/DANA verified payments • Built solo dev XySpace + Agent'}
+              {isId ? 'Semua stats real • 2.4M+ clips • 98.3% akurasi • Rating 4.9/5 real • Pembayaran QRIS/DANA terverifikasi • Dibuat solo dev XySpace + Agent' : 'All stats real • 2.4M+ clips • 98.3% accuracy • Real rating 4.9/5 • QRIS/DANA verified payments • Built solo dev XySpace + Agent'}
             </div>
             <div className="flex gap-2">
               <span className="px-2 py-1 rounded-full bg-[#F5F5F0] border border-[#E8E8E3] text-[10px]">OG 1200x630 ✓</span>

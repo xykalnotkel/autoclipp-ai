@@ -20,43 +20,36 @@ type Clip = {
   words: Word[]
 }
 
-const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'https://autoclipp-auth.akuntiktok76y.workers.dev'
-
-const STYLES = {
-  hormozi: { 
-    name: 'Hormozi', desc: 'Yellow highlight viral', font: 'Anton', text: '#FFFFFF', highlight: '#FFD60A', stroke: '#000000', sw: 8, bg: 'transparent', upper: true,
-    previewText: 'RAHASIA', previewSub: 'JADI KAYA', color: 'bg-[#FFD60A] text-black', sample: 'RAHASIA JADI KAYA', usage: '67%'
-  },
-  mrbeast: { 
-    name: 'MrBeast', desc: 'Big bold energetic', font: 'Bebas Neue', text: '#FFFFFF', highlight: '#FF2D2D', stroke: '#000000', sw: 10, bg: 'transparent', upper: true,
-    previewText: 'INSANE!', previewSub: 'VIRAL', color: 'bg-[#FF2D2D] text-white', sample: 'INSANE VIRAL', usage: '23%'
-  },
-  karaoke: { 
-    name: 'Karaoke', desc: 'Box highlight word', font: 'Montserrat', text: '#FFFFFF', highlight: '#000000', stroke: 'transparent', sw: 0, bg: '#FFD60A', upper: false,
-    previewText: 'Karaoke', previewSub: 'Style', color: 'bg-[#0A0A0A] text-white', sample: 'Karaoke Box', usage: '18%'
-  },
-  minimal: { 
-    name: 'Minimal', desc: 'Clean professional', font: 'Inter', text: '#FFFFFF', highlight: '#FFFFFF', stroke: '#000000', sw: 4, bg: 'transparent', upper: false,
-    previewText: 'Clean', previewSub: 'Pro', color: 'bg-white text-black border', sample: 'Clean Minimal', usage: '12%'
-  },
-  tiktok: { 
-    name: 'TikTok', desc: '2 words center viral', font: 'Oswald', text: '#FFFFFF', highlight: '#FF2D55', stroke: '#000000', sw: 6, bg: 'transparent', upper: true,
-    previewText: 'VIRAL', previewSub: 'NOW', color: 'bg-[#FF2D55] text-white', sample: 'VIRAL NOW', usage: '34%'
-  },
-  editorial: { 
-    name: 'Editorial', desc: 'Serif premium', font: 'Playfair Display', text: '#0A0A0A', highlight: '#0A0A0A', stroke: '#FFFFFF', sw: 6, bg: 'rgba(255,255,255,0.9)', upper: false,
-    previewText: 'Premium', previewSub: 'Story', color: 'bg-[#F5F5F0] text-black', sample: 'Premium Editorial', usage: '9%'
-  },
+// 12 STYLES - visual, not black
+const STYLES: any = {
+  hormozi: { name: 'Hormozi', desc: 'Yellow highlight viral', font: 'Anton', text: '#FFFFFF', highlight: '#FFD60A', stroke: '#000000', sw: 8, bg: 'transparent', upper: true, previewText: 'RAHASIA', previewSub: 'KAYA', usage: '67%', bgPreview: '#0A0A0A' },
+  mrbeast: { name: 'MrBeast', desc: 'Big bold energetic', font: 'Bebas Neue', text: '#FFFFFF', highlight: '#FF3B30', stroke: '#000000', sw: 10, bg: 'transparent', upper: true, previewText: 'INSANE!', previewSub: 'VIRAL', usage: '23%', bgPreview: '#1A1A1A' },
+  karaoke: { name: 'Karaoke', desc: 'Box highlight word', font: 'Montserrat', text: '#0A0A0A', highlight: '#FFFFFF', stroke: 'transparent', sw: 0, bg: '#FFD60A', upper: false, previewText: 'Karaoke', previewSub: 'Box', usage: '18%', bgPreview: '#FFD60A' },
+  minimal: { name: 'Minimal', desc: 'Clean professional', font: 'Inter', text: '#0A0A0A', highlight: '#0A0A0A', stroke: '#FFFFFF', sw: 0, bg: 'rgba(255,255,255,0.9)', upper: false, previewText: 'Clean', previewSub: 'Pro', usage: '12%', bgPreview: '#F5F5F0' },
+  tiktok: { name: 'TikTok', desc: '2 words center viral', font: 'Oswald', text: '#FFFFFF', highlight: '#FF2D55', stroke: '#000000', sw: 6, bg: 'transparent', upper: true, previewText: 'VIRAL', previewSub: 'NOW', usage: '34%', bgPreview: '#000000' },
+  editorial: { name: 'Editorial', desc: 'Serif premium', font: 'Georgia', text: '#0A0A0A', highlight: '#0A0A0A', stroke: '#FFFFFF', sw: 4, bg: 'rgba(255,255,255,0.95)', upper: false, previewText: 'Premium', previewSub: 'Story', usage: '9%', bgPreview: '#FFFFFF' },
+  netflix: { name: 'Netflix', desc: 'Red cinematic', font: 'Bebas Neue', text: '#FFFFFF', highlight: '#E50914', stroke: '#000000', sw: 6, bg: 'transparent', upper: true, previewText: 'CINEMA', previewSub: 'RED', usage: '15%', bgPreview: '#000000' },
+  youtube: { name: 'YouTube', desc: 'White bold clean', font: 'Inter', text: '#FFFFFF', highlight: '#FF0000', stroke: '#000000', sw: 5, bg: 'transparent', upper: false, previewText: 'YouTube', previewSub: 'Style', usage: '28%', bgPreview: '#212121' },
+  bold: { name: 'Bold', desc: 'Extra bold white', font: 'Anton', text: '#FFFFFF', highlight: '#FFFFFF', stroke: '#000000', sw: 9, bg: 'transparent', upper: true, previewText: 'BOLD', previewSub: 'TEXT', usage: '19%', bgPreview: '#0A0A0A' },
+  glow: { name: 'Glow', desc: 'Neon glow effect', font: 'Montserrat', text: '#FFFFFF', highlight: '#00FF88', stroke: '#000000', sw: 4, bg: 'transparent', upper: true, previewText: 'GLOW', previewSub: 'NEON', usage: '11%', bgPreview: '#0A0A0A' },
+  outline: { name: 'Outline', desc: 'Outline only', font: 'Bebas Neue', text: 'transparent', highlight: '#FFFFFF', stroke: '#FFFFFF', sw: 3, bg: 'transparent', upper: true, previewText: 'OUTLINE', previewSub: 'ONLY', usage: '8%', bgPreview: '#000000' },
+  shadow: { name: 'Shadow', desc: 'Soft shadow', font: 'Inter', text: '#FFFFFF', highlight: '#FFD60A', stroke: '#000000', sw: 0, bg: 'transparent', upper: false, previewText: 'Shadow', previewSub: 'Soft', usage: '13%', bgPreview: '#2A2A2A' },
 }
 
-const ANIMATIONS = {
-  pop: { name: 'Pop', desc: 'Scale pop on word', icon: '● → ○ → ●', demo: 'scale', usage: '45%' },
-  bounce: { name: 'Bounce', desc: 'Bouncy energetic', icon: '↕ Bounce', demo: 'bounce', usage: '22%' },
-  slide: { name: 'Slide', desc: 'Slide up smooth', icon: '↑ Slide', demo: 'slide', usage: '15%' },
-  fade: { name: 'Fade', desc: 'Fade in elegant', icon: '◐ Fade', demo: 'fade', usage: '8%' },
-  karaoke: { name: 'Karaoke', desc: 'Word by word box', icon: '▭ Box', demo: 'karaoke', usage: '18%' },
-  wave: { name: 'Wave', desc: 'Wave motion', icon: '∿ Wave', demo: 'wave', usage: '11%' },
+const ANIMATIONS: any = {
+  pop: { name: 'Pop', desc: 'Scale pop', icon: 'POP', usage: '45%' },
+  bounce: { name: 'Bounce', desc: 'Bouncy', icon: 'BOUNCE', usage: '22%' },
+  slide: { name: 'Slide', desc: 'Slide up', icon: 'SLIDE', usage: '15%' },
+  fade: { name: 'Fade', desc: 'Fade in', icon: 'FADE', usage: '8%' },
+  karaoke: { name: 'Karaoke', desc: 'Box word', icon: 'BOX', usage: '18%' },
+  wave: { name: 'Wave', desc: 'Wave motion', icon: 'WAVE', usage: '11%' },
+  typewriter: { name: 'Typewriter', desc: 'Ketik per huruf', icon: 'TYPE', usage: '14%' },
+  glitch: { name: 'Glitch', desc: 'Glitch effect', icon: 'GLITCH', usage: '7%' },
+  zoom: { name: 'Zoom', desc: 'Zoom in', icon: 'ZOOM', usage: '12%' },
+  rotate: { name: 'Rotate', desc: 'Rotate 3D', icon: 'ROTATE', usage: '6%' },
 }
+
+const FONTS = ['Anton', 'Bebas Neue', 'Montserrat', 'Inter', 'Oswald', 'Georgia', 'Poppins', 'Space Grotesk']
 
 const MOCK: Word[] = [
   { word: "Guys,", start: 0.0, end: 0.4 }, { word: "ini", start: 0.4, end: 0.6 }, { word: "rahasia", start: 0.6, end: 1.1 },
@@ -77,8 +70,8 @@ export default function EditorPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [clips, setClips] = useState<Clip[]>([])
   const [selectedClip, setSelectedClip] = useState<Clip | null>(null)
-  const [styleKey, setStyleKey] = useState<keyof typeof STYLES>('hormozi')
-  const [anim, setAnim] = useState<keyof typeof ANIMATIONS>('pop')
+  const [styleKey, setStyleKey] = useState<string>('hormozi')
+  const [anim, setAnim] = useState<string>('pop')
   const [fontSize, setFontSize] = useState(64)
   const [pos, setPos] = useState<'top'|'center'|'bottom'>('bottom')
   const [wpl, setWpl] = useState(2)
@@ -91,29 +84,41 @@ export default function EditorPage() {
   const [exportStatus, setExportStatus] = useState('')
   const [projectTitle, setProjectTitle] = useState('Untitled Project')
   const [saving, setSaving] = useState(false)
-  const [grokLoading, setGrokLoading] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
   const [ffmpegLoaded, setFfmpegLoaded] = useState(false)
   const [ffmpeg, setFfmpeg] = useState<FFmpeg | null>(null)
   const [loopPreview, setLoopPreview] = useState(true)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
-  const [showStylePreview, setShowStylePreview] = useState(true)
   const [clipStartEdit, setClipStartEdit] = useState(0)
   const [clipEndEdit, setClipEndEdit] = useState(0)
+  // Custom colors
+  const [customTextColor, setCustomTextColor] = useState('')
+  const [customHighlightColor, setCustomHighlightColor] = useState('')
+  const [customStrokeColor, setCustomStrokeColor] = useState('')
+  const [customBgColor, setCustomBgColor] = useState('')
+  const [customFont, setCustomFont] = useState('')
+  const [showCustom, setShowCustom] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const style = STYLES[styleKey]
+  const baseStyle = STYLES[styleKey] || STYLES.hormozi
+  const style = {
+    ...baseStyle,
+    text: customTextColor || baseStyle.text,
+    highlight: customHighlightColor || baseStyle.highlight,
+    stroke: customStrokeColor || baseStyle.stroke,
+    bg: customBgColor || baseStyle.bg,
+    font: customFont || baseStyle.font,
+  }
 
   // Load FFmpeg
   useEffect(() => {
     const loadFFmpeg = async () => {
       try {
         const ff = new FFmpeg()
-        ff.on('progress', ({ progress }) => {
-          setProgress(Math.round(progress * 100))
-        })
+        ff.on('progress', ({ progress }) => setProgress(Math.round(progress * 100)))
         const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd'
         await ff.load({
           coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
@@ -122,7 +127,7 @@ export default function EditorPage() {
         setFfmpeg(ff)
         setFfmpegLoaded(true)
       } catch (e) {
-        console.log('FFmpeg load failed, fallback', e)
+        console.log('FFmpeg fallback', e)
         setFfmpegLoaded(false)
       }
     }
@@ -179,7 +184,7 @@ export default function EditorPage() {
         body: JSON.stringify({ url: targetUrl })
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch YouTube')
+      if (!res.ok) throw new Error(data.error || 'Gagal ambil YouTube')
       setYoutubeInfo(data)
       setProjectTitle(data.title || 'YouTube Video')
       if (data.downloadUrl) {
@@ -203,7 +208,7 @@ export default function EditorPage() {
         genClips(extWords, data.duration || 180)
       }
     } catch (e: any) {
-      alert(e.message || 'Gagal proses YouTube URL')
+      alert(e.message || 'Gagal proses YouTube')
     }
     setIsYoutubeLoading(false)
   }
@@ -213,9 +218,7 @@ export default function EditorPage() {
       const text = await navigator.clipboard.readText()
       if (text) {
         setYoutubeUrl(text)
-        if (text.includes('youtube.com') || text.includes('youtu.be')) {
-          handleYoutube(text)
-        }
+        if (text.includes('youtube.com') || text.includes('youtu.be')) handleYoutube(text)
       }
     } catch {
       document.querySelector<HTMLInputElement>('input[placeholder=\"Paste YouTube URL\"]')?.focus()
@@ -224,10 +227,7 @@ export default function EditorPage() {
 
   const handleTranscribe = async () => {
     if (youtubeInfo && clips.length > 0) {
-      if (!selectedClip && clips[0]) {
-        setSelectedClip(clips[0])
-        setHook(clips[0].hook)
-      }
+      if (!selectedClip && clips[0]) { setSelectedClip(clips[0]); setHook(clips[0].hook) }
       return
     }
     if (!videoUrl && !youtubeInfo) return
@@ -247,27 +247,19 @@ export default function EditorPage() {
         words = ext.filter((w: Word) => w.end <= duration)
       }
       genClips(words, duration)
-      try {
-        const clipRes = await fetch(`${AUTH_URL}/ai/generate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ type: 'viral_score', transcript: words.map((w:Word)=>w.word).join(' ').slice(0, 5000) })
-        })
-        await clipRes.json()
-      } catch {}
     } catch {
       genClips(MOCK, duration || 30)
     }
     setIsProcessing(false)
   }
 
-  const handleGrokHook = async () => {
+  const handleAiHook = async () => {
     if (!selectedClip) return
-    setGrokLoading(true)
+    setAiLoading(true)
     try {
       const transcript = selectedClip.words.map(w=>w.word).join(' ')
-      const res = await fetch(`${AUTH_URL}/ai/generate`, {
+      const authUrl = process.env.NEXT_PUBLIC_AUTH_URL || 'https://autoclipp-auth.akuntiktok76y.workers.dev'
+      const res = await fetch(`${authUrl}/ai/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -282,7 +274,7 @@ export default function EditorPage() {
     } catch {
       setHook(clips[Math.floor(Math.random()*clips.length)]?.hook || 'RAHASIA VIRAL TERUNGKAP')
     }
-    setGrokLoading(false)
+    setAiLoading(false)
   }
 
   const handleFile = async (f: File) => {
@@ -300,12 +292,12 @@ export default function EditorPage() {
   }
 
   const handleSaveProject = async () => {
-    if (!clips.length) return
+    if (!clips.length) { alert('Generate clips dulu'); return }
     setSaving(true)
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) { alert('Login dulu untuk save'); setSaving(false); return }
       const { data: project, error } = await supabase
         .from('projects')
         .insert({ user_id: user.id, title: projectTitle, duration, status: 'completed' })
@@ -325,13 +317,18 @@ export default function EditorPage() {
           style: styleKey,
           transcript: c.words
         }))
-        await supabase.from('clips').insert(clipsToInsert)
+        const { error: clipError } = await supabase.from('clips').insert(clipsToInsert)
+        if (clipError) throw clipError
+        alert('✅ Project berhasil disimpan!')
       }
-    } catch (e) { console.error(e) }
+    } catch (e: any) {
+      console.error(e)
+      alert('Gagal save: ' + e.message)
+    }
     setSaving(false)
   }
 
-  // Canvas rendering for preview
+  // Canvas rendering
   useEffect(() => {
     const canvas = canvasRef.current
     const video = videoRef.current
@@ -340,15 +337,16 @@ export default function EditorPage() {
     if (!ctx) return
     let animationId: number
     const render = () => {
-      if (!video || video.paused) {
-        animationId = requestAnimationFrame(render)
-        return
-      }
+      if (!video || video.paused) { animationId = requestAnimationFrame(render); return }
       const vw = canvas.width, vh = canvas.height
       ctx.clearRect(0,0,vw,vh)
-      ctx.filter = 'blur(24px) brightness(0.55)'
-      ctx.drawImage(video, 0,0,vw,vh)
-      ctx.filter = 'none'
+      // Background blur
+      try {
+        ctx.filter = 'blur(24px) brightness(0.55)'
+        ctx.drawImage(video, 0,0,vw,vh)
+        ctx.filter = 'none'
+      } catch { ctx.drawImage(video, 0,0,vw,vh) }
+      
       const va = video.videoWidth / video.videoHeight
       const ca = vw / vh
       let sx,sy,sw,sh
@@ -377,37 +375,49 @@ export default function EditorPage() {
         if (pos==='bottom') y = vh*0.82
         ctx.textAlign='center'
         ctx.textBaseline='middle'
-        const ff = style.font==='Montserrat'?'Montserrat': style.font==='Bebas Neue'?'Bebas Neue': style.font==='Anton'?'Anton': style.font==='Oswald'?'Oswald':'Inter'
-        ctx.font = `900 ${fontSize}px "${ff}", sans-serif`
+        const ff = style.font
+        ctx.font = `900 ${fontSize}px \"${ff}\", sans-serif`
         const mw = ctx.measureText(text).width
         const tht = fontSize*1.15
-        let scale=1, oy=0, op=1, rot=0
+        let scale=1, oy=0, op=1, rot=0, skew=0
         if (cur) {
           const p = (at - cur.start)/(cur.end-cur.start)
-          if (anim==='pop') scale = 1 + Math.sin(p*Math.PI)*0.12
-          else if (anim==='bounce') { scale=1+Math.abs(Math.sin(p*Math.PI*2))*0.18; oy=-Math.abs(Math.sin(p*Math.PI))*8 }
-          else if (anim==='slide') { oy=(1-p)*16; op=p }
-          else if (anim==='fade') { op = p; scale = 0.8 + p*0.2 }
-          else if (anim==='wave') { oy = Math.sin(p*Math.PI*2)*6; rot = Math.sin(p*Math.PI)*0.05 }
+          if (anim==='pop') scale = 1 + Math.sin(p*Math.PI)*0.18
+          else if (anim==='bounce') { scale=1+Math.abs(Math.sin(p*Math.PI*2))*0.22; oy=-Math.abs(Math.sin(p*Math.PI))*12 }
+          else if (anim==='slide') { oy=(1-p)*20; op=p }
+          else if (anim==='fade') { op = p; scale = 0.85 + p*0.15 }
+          else if (anim==='wave') { oy = Math.sin(p*Math.PI*2)*8; rot = Math.sin(p*Math.PI)*0.08 }
+          else if (anim==='typewriter') { op = 1; /* handled per char */ }
+          else if (anim==='glitch') { if (Math.random()>0.85) { oy = (Math.random()-0.5)*10; skew = (Math.random()-0.5)*0.2 } }
+          else if (anim==='zoom') { scale = 0.8 + p*0.4 }
+          else if (anim==='rotate') { rot = p*0.3; scale = 0.9 + Math.sin(p*Math.PI)*0.1 }
         }
         ctx.save()
         ctx.globalAlpha=op
         ctx.translate(vw/2, y+oy)
         ctx.rotate(rot)
+        // @ts-ignore
+        if (skew) ctx.transform(1, skew, 0, 1, 0, 0)
         ctx.scale(scale,scale)
         if (style.bg !== 'transparent') {
           ctx.fillStyle = style.bg
           ctx.beginPath()
           // @ts-ignore
-          if (ctx.roundRect) ctx.roundRect(-mw/2-18, -tht/2-8, mw+36, tht+16, 10); else ctx.rect(-mw/2-18, -tht/2-8, mw+36, tht+16)
+          if (ctx.roundRect) ctx.roundRect(-mw/2-20, -tht/2-10, mw+40, tht+20, 12); else ctx.rect(-mw/2-20, -tht/2-10, mw+40, tht+20)
           ctx.fill()
         }
-        if (style.sw>0) {
+        // Glow effect
+        if (styleKey==='glow') {
+          ctx.shadowColor = style.highlight
+          ctx.shadowBlur = 20
+        }
+        if (style.sw>0 && style.stroke !== 'transparent') {
           ctx.strokeStyle = style.stroke
           ctx.lineWidth = style.sw
           ctx.lineJoin='round'
           ctx.strokeText(text,0,0)
         }
+        ctx.shadowBlur = 0
         if (toShow.length>1 && cur) {
           let xo = -mw/2
           toShow.forEach(w=>{
@@ -415,17 +425,29 @@ export default function EditorPage() {
             const wt = style.upper ? w.word.toUpperCase() : w.word
             const ww = ctx.measureText(wt+' ').width
             ctx.fillStyle = isCur ? style.highlight : style.text
-            ctx.fillText(wt+' ', xo+ww/2, 0)
+            if (style.text === 'transparent') {
+              ctx.strokeStyle = style.highlight
+              ctx.lineWidth = 2
+              ctx.strokeText(wt+' ', xo+ww/2, 0)
+            } else {
+              ctx.fillText(wt+' ', xo+ww/2, 0)
+            }
             xo+=ww
           })
         } else {
-          ctx.fillStyle = style.text
-          ctx.fillText(text,0,0)
+          if (style.text === 'transparent') {
+            ctx.strokeStyle = style.highlight
+            ctx.lineWidth = 3
+            ctx.strokeText(text,0,0)
+          } else {
+            ctx.fillStyle = style.text
+            ctx.fillText(text,0,0)
+          }
         }
         ctx.restore()
         if (hook) {
           ctx.save()
-          ctx.font=`700 22px Inter, sans-serif`
+          ctx.font=`800 22px Inter, sans-serif`
           ctx.fillStyle='#FFD60A'
           ctx.strokeStyle='#000'
           ctx.lineWidth=5
@@ -458,9 +480,7 @@ export default function EditorPage() {
     return () => { v.removeEventListener('timeupdate', ut); v.removeEventListener('loadedmetadata', lm) }
   }, [selectedClip, loopPreview, clipStartEdit, clipEndEdit])
 
-  useEffect(() => {
-    if (videoRef.current) videoRef.current.playbackRate = playbackSpeed
-  }, [playbackSpeed])
+  useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = playbackSpeed }, [playbackSpeed])
 
   const applyDurationEdit = () => {
     if (!selectedClip) return
@@ -473,19 +493,26 @@ export default function EditorPage() {
     if (videoRef.current) videoRef.current.currentTime = newStart
   }
 
+  const handleTestPlay = () => {
+    if (!selectedClip || !videoRef.current) { alert('Generate clips dulu'); return }
+    videoRef.current.currentTime = clipStartEdit
+    videoRef.current.play()
+    setIsPlaying(true)
+  }
+
   const doExport = async () => {
-    if (!selectedClip) return
+    if (!selectedClip) { alert('Pilih clip dulu'); return }
     setShowExport(true)
     setProgress(0)
-    setExportStatus('Menyiapkan export...')
+    setExportStatus('Menyiapkan...')
     try {
       if (videoFile && ffmpeg && ffmpegLoaded) {
-        setExportStatus('FFmpeg trim...')
+        setExportStatus('Memotong video...')
         setProgress(10)
         await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile))
         setProgress(20)
         await ffmpeg.exec(['-ss', clipStartEdit.toString(), '-i', 'input.mp4', '-t', (clipEndEdit-clipStartEdit).toString(), '-c', 'copy', '-avoid_negative_ts', 'make_zero', 'trimmed.mp4'])
-        setProgress(60)
+        setProgress(70)
         const data = await ffmpeg.readFile('trimmed.mp4') as any
         const blob = new Blob([data], { type: 'video/mp4' })
         const url = URL.createObjectURL(blob)
@@ -495,7 +522,7 @@ export default function EditorPage() {
         a.click()
         URL.revokeObjectURL(url)
         setProgress(100)
-        setExportStatus('Berhasil!')
+        setExportStatus('Berhasil diunduh!')
       } else {
         setExportStatus('Merekam preview dengan subtitle...')
         const canvas = canvasRef.current
@@ -517,7 +544,7 @@ export default function EditorPage() {
           recorder.onstop = async () => {
             const blob = new Blob(chunks, { type: 'video/webm' })
             if (ffmpeg && ffmpegLoaded) {
-              setExportStatus('Konversi MP4...')
+              setExportStatus('Konversi ke MP4...')
               try {
                 await ffmpeg.writeFile('recorded.webm', await fetchFile(blob))
                 await ffmpeg.exec(['-i', 'recorded.webm', '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', 'final.mp4'])
@@ -565,13 +592,14 @@ export default function EditorPage() {
         video.pause()
         await exportPromise
         setProgress(100)
+        setExportStatus('Berhasil!')
       }
     } catch (e: any) {
       console.error('Export failed', e)
       setExportStatus(`Gagal: ${e.message}`)
       for (let i=progress;i<=100;i+=10){ await new Promise(r=>setTimeout(r,100)); setProgress(i) }
     }
-    setTimeout(()=>{ setShowExport(false); setProgress(0); setExportStatus('') }, 1500)
+    setTimeout(()=>{ setShowExport(false); setProgress(0); setExportStatus('') }, 2000)
   }
 
   const isGenerateEnabled = !!(videoUrl || youtubeInfo) && !isProcessing && !isYoutubeLoading
@@ -595,22 +623,22 @@ export default function EditorPage() {
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-2 text-[10px]">
               <span className={`px-2 py-1 rounded-full border ${ffmpegLoaded ? 'bg-green-50 border-green-200 text-green-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
-                {ffmpegLoaded ? '✓ FFmpeg Ready' : '○ Loading FFmpeg...'}
+                {ffmpegLoaded ? '✓ Ready' : '○ Loading...'}
               </span>
             </div>
-            <Button variant="outline" size="sm" className="h-8" onClick={handleSaveProject} disabled={saving || !clips.length}>{saving ? 'Saving...' : 'Save'}</Button>
-            <Button size="sm" className="h-8" onClick={doExport} disabled={!selectedClip}>Export</Button>
+            <Button variant="outline" size="sm" className="h-8" onClick={handleSaveProject} disabled={saving || !clips.length}>{saving ? 'Menyimpan...' : 'Simpan'}</Button>
+            <Button size="sm" className="h-8 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A]" onClick={doExport} disabled={!selectedClip}>Export</Button>
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-[1600px] px-4 lg:px-6 py-4 lg:py-6 grid grid-cols-12 gap-4 lg:gap-5">
-        {/* LEFT - Source + Clips */}
+        {/* LEFT */}
         <div className="col-span-12 lg:col-span-3 space-y-4">
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Source</h2>
-              <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">STEP 1</span>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Source Video</h2>
+              <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">LANGKAH 1</span>
             </div>
             <div
               onDrop={e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f&&f.type.startsWith('video/')) handleFile(f)}}
@@ -619,13 +647,13 @@ export default function EditorPage() {
               className="rounded-[16px] border border-dashed border-[#E8E8E3] bg-[#FCFCF9] p-6 text-center hover:border-[#0A0A0A] hover:bg-white cursor-pointer transition"
             >
               <div className="mx-auto h-10 w-10 rounded-[12px] bg-[#0A0A0A] text-white flex items-center justify-center text-[16px] font-[700]">↑</div>
-              <div className="mt-3 text-[13px] font-[600] tracking-[-0.01em]">Drop video here</div>
-              <div className="text-[11px] text-[#6B6B6B] mt-1">MP4, MOV up to 2GB</div>
+              <div className="mt-3 text-[13px] font-[600] tracking-[-0.01em]">Drop video di sini</div>
+              <div className="text-[11px] text-[#6B6B6B] mt-1">MP4, MOV hingga 2GB</div>
               <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; if(f) handleFile(f)}} />
             </div>
             
             <div className="mt-4 space-y-2">
-              <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">YouTube URL — Auto Detect</label>
+              <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Tempel Link YouTube — Auto Deteksi</label>
               <div className="flex gap-2">
                 <input 
                   value={youtubeUrl} 
@@ -635,7 +663,7 @@ export default function EditorPage() {
                   className="flex-1 h-9 rounded-full border border-[#E8E8E3] bg-white px-4 text-[12px] placeholder:text-[#9B9B9B] focus:outline-none focus:border-[#0A0A0A]" 
                 />
                 <Button size="sm" variant="secondary" className="h-9 px-3 text-[11px]" onClick={handlePasteClipboard}>Paste</Button>
-                <Button size="sm" className="h-9 px-3 text-[11px]" onClick={()=>handleYoutube()} disabled={isYoutubeLoading || !youtubeUrl.trim()}>
+                <Button size="sm" className="h-9 px-3 text-[11px] bg-[#0A0A0A] text-white" onClick={()=>handleYoutube()} disabled={isYoutubeLoading || !youtubeUrl.trim()}>
                   {isYoutubeLoading ? '...' : 'Go'}
                 </Button>
               </div>
@@ -646,10 +674,9 @@ export default function EditorPage() {
                     <img src={youtubeInfo.thumbnail} alt="thumb" className="h-14 w-20 rounded-[8px] object-cover bg-[#F5F5F0]" />
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-[600] leading-[1.3] line-clamp-2">{youtubeInfo.title}</div>
-                      <div className="text-[10px] text-[#6B6B6B] mt-1">{youtubeInfo.author} • {youtubeInfo.videoId}</div>
+                      <div className="text-[10px] text-[#6B6B6B] mt-1">{youtubeInfo.author}</div>
                       <div className="mt-1 flex gap-1">
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-[600]">✓ YouTube</span>
-                        {youtubeInfo.downloadUrl && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#0A0A0A] text-white font-[600]">Ready</span>}
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-[600]">✓ Terdeteksi</span>
                       </div>
                     </div>
                   </div>
@@ -657,21 +684,21 @@ export default function EditorPage() {
               )}
             </div>
 
-            <Button className="w-full mt-4 h-10" disabled={!isGenerateEnabled} onClick={handleTranscribe}>
-              {isProcessing ? 'Processing...' : isYoutubeLoading ? 'Fetching...' : youtubeInfo ? `Generate ${youtubeInfo.title.slice(0,20)}...` : 'Generate Clips'}
+            <Button className="w-full mt-4 h-10 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A]" disabled={!isGenerateEnabled} onClick={handleTranscribe}>
+              {isProcessing ? 'Memproses...' : isYoutubeLoading ? 'Mengambil YouTube...' : youtubeInfo ? `Buat Clip • ${youtubeInfo.title.slice(0,20)}` : 'Buat Clip Viral'}
             </Button>
           </Card>
 
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Clips ({clips.length})</h2>
-              <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#0A0A0A] text-white">AI • Grok</span>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Hasil Clip ({clips.length})</h2>
+              <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#0A0A0A] text-white">AI • Viral</span>
             </div>
             <div className="space-y-2 max-h-[420px] overflow-auto pr-1">
               {clips.length===0 ? (
                 <div className="py-10 text-center">
                   <div className="mx-auto h-10 w-10 rounded-[12px] border border-dashed border-[#E8E8E3] flex items-center justify-center text-[#9B9B9B]">—</div>
-                  <div className="mt-3 text-[12px] font-[500] text-[#6B6B6B]">Upload and generate to see clips</div>
+                  <div className="mt-3 text-[12px] font-[500] text-[#6B6B6B]">Upload dan buat clip dulu</div>
                 </div>
               ) : clips.map(c=>(
                 <button key={c.id} onClick={()=>{ setSelectedClip(c); setHook(c.hook); if(videoRef.current){ videoRef.current.currentTime=c.start; videoRef.current.play(); setIsPlaying(true) } }} className={`w-full text-left rounded-[14px] border p-3 transition ${selectedClip?.id===c.id ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
@@ -687,11 +714,11 @@ export default function EditorPage() {
           </Card>
         </div>
 
-        {/* CENTER - Preview with controls */}
+        {/* CENTER - Preview with PLAY BUTTON */}
         <div className="col-span-12 lg:col-span-5 space-y-4">
           <Card className="p-3 lg:p-4">
             <div className="flex items-center justify-between mb-3 px-1">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Preview 9:16 — Play Before Export</h2>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Preview 9:16 — Tes Sebelum Export</h2>
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-[600] px-2 py-1 rounded-full bg-[#0A0A0A] text-white">1080x1920</span>
                 <button onClick={()=>setLoopPreview(!loopPreview)} className={`text-[10px] font-[600] px-2 py-1 rounded-full border ${loopPreview ? 'bg-[#FFD60A] border-[#FFD60A] text-black' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{loopPreview ? 'Loop ON' : 'Loop OFF'}</button>
@@ -702,27 +729,33 @@ export default function EditorPage() {
                 <>
                   <video ref={videoRef} src={videoUrl} className="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" crossOrigin="anonymous" playsInline onPlay={()=>setIsPlaying(true)} onPause={()=>setIsPlaying(false)} />
                   <canvas ref={canvasRef} width={1080} height={1920} className="absolute inset-0 w-full h-full" />
+                  
+                  {/* PLAY BUTTON - CENTER BIG */}
                   {!isPlaying && (
-                    <button onClick={()=>videoRef.current?.play()} className="absolute inset-0 flex items-center justify-center bg-black/15 backdrop-blur-[0.5px]">
-                      <div className="h-16 w-16 rounded-full bg-white flex items-center justify-center shadow-[0_8px_24px_rgba(0,0,0,0.2)] hover:scale-105 transition">
-                        <div className="h-0 w-0 border-l-[14px] border-l-[#0A0A0A] border-y-[8px] border-y-transparent ml-1" />
+                    <button onClick={()=>videoRef.current?.play()} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[1px] gap-3">
+                      <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:scale-105 transition">
+                        <div className="h-0 w-0 border-l-[20px] border-l-[#0A0A0A] border-y-[12px] border-y-transparent ml-1.5" />
                       </div>
+                      <span className="text-[12px] font-[600] text-white bg-black/50 px-3 py-1 rounded-full backdrop-blur-md">▶ Putar Preview</span>
                     </button>
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                    <div className="flex items-center gap-3">
-                      <button onClick={()=> isPlaying ? videoRef.current?.pause() : videoRef.current?.play()} className="h-8 w-8 rounded-full bg-white text-black flex items-center justify-center text-[10px] font-[800]">
-                        {isPlaying ? '||' : '▶'}
+
+                  {/* Bottom controls */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
+                    <div className="flex items-center gap-2">
+                      <button onClick={()=> isPlaying ? videoRef.current?.pause() : videoRef.current?.play()} className="h-9 w-9 rounded-full bg-white text-black flex items-center justify-center text-[12px] font-[800] hover:scale-105 transition">
+                        {isPlaying ? '❚❚' : '▶'}
                       </button>
+                      <Button size="sm" variant="secondary" className="h-8 text-[10px] bg-white/20 text-white border-white/20 hover:bg-white hover:text-black backdrop-blur-md" onClick={handleTestPlay}>↻ Tes Ulang</Button>
                       <div className="flex-1">
-                        <input type="range" min={clipStartEdit} max={clipEndEdit} step={0.1} value={currentTime} onChange={e=>{ const t=parseFloat(e.target.value); setCurrentTime(t); if(videoRef.current) videoRef.current.currentTime=t }} className="w-full accent-[#FFD60A] h-1" />
-                        <div className="mt-1.5 flex justify-between text-[10px] font-mono text-white/70">
+                        <input type="range" min={clipStartEdit} max={clipEndEdit} step={0.1} value={currentTime} onChange={e=>{ const t=parseFloat(e.target.value); setCurrentTime(t); if(videoRef.current) videoRef.current.currentTime=t }} className="w-full accent-[#FFD60A] h-1.5" />
+                        <div className="mt-1.5 flex justify-between text-[10px] font-mono text-white/80">
                           <span>{currentTime.toFixed(1)}s</span>
-                          <span>{(clipEndEdit-clipStartEdit).toFixed(1)}s clip</span>
+                          <span className="font-[700] text-[#FFD60A]">{(clipEndEdit-clipStartEdit).toFixed(1)}s clip • {style.name} + {ANIMATIONS[anim]?.name}</span>
                           <span>{clipEndEdit.toFixed(1)}s</span>
                         </div>
                       </div>
-                      <select value={playbackSpeed} onChange={e=>setPlaybackSpeed(parseFloat(e.target.value))} className="h-7 rounded-full bg-white/10 border border-white/20 text-white text-[10px] px-2">
+                      <select value={playbackSpeed} onChange={e=>setPlaybackSpeed(parseFloat(e.target.value))} className="h-8 rounded-full bg-white/10 border border-white/20 text-white text-[10px] px-2 backdrop-blur-md">
                         <option value={0.5}>0.5x</option>
                         <option value={1}>1x</option>
                         <option value={1.5}>1.5x</option>
@@ -731,8 +764,8 @@ export default function EditorPage() {
                     </div>
                   </div>
                   <div className="absolute top-3 left-3 right-3 flex justify-between">
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10">{style.name} • {ANIMATIONS[anim].name}</span>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-[#FFD60A] text-black font-[700]">PREVIEW REAL</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10 font-[600]">{style.name} • {ANIMATIONS[anim]?.name} • {fontSize}px</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-[#FFD60A] text-black font-[700]">PREVIEW ASLI</span>
                   </div>
                 </>
               ) : youtubeInfo ? (
@@ -742,131 +775,93 @@ export default function EditorPage() {
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="rounded-[12px] bg-white p-3">
                       <div className="text-[12px] font-[700] line-clamp-2">{youtubeInfo.title}</div>
-                      <div className="text-[10px] text-[#6B6B6B] mt-1">YouTube Preview • {youtubeInfo.author}</div>
-                      <div className="mt-2 text-[10px] px-2 py-1 rounded-full bg-[#FFD60A] inline-block font-[600]">✓ Ready to generate clips</div>
+                      <div className="text-[10px] text-[#6B6B6B] mt-1">Preview YouTube • {youtubeInfo.author}</div>
+                      <Button size="sm" className="mt-3 w-full h-8 text-[11px]" onClick={handleTranscribe}>Buat Clip Sekarang</Button>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                  <div className="h-16 w-16 rounded-[16px] border border-dashed border-white/20 flex items-center justify-center text-white/30">Video</div>
-                  <div className="mt-4 text-[13px] font-[600] text-white/60">No video yet</div>
-                  <div className="mt-1 text-[11px] text-white/30 max-w-[220px] leading-[1.4]">Upload MP4 atau paste YouTube untuk preview real</div>
+                  <div className="h-16 w-16 rounded-[16px] border border-dashed border-white/20 flex items-center justify-center text-white/30 text-[24px]">▶</div>
+                  <div className="mt-4 text-[13px] font-[600] text-white/60">Belum ada video</div>
+                  <div className="mt-1 text-[11px] text-white/30 max-w-[220px] leading-[1.4]">Upload MP4 atau tempel link YouTube untuk preview dengan tombol play</div>
                 </div>
               )}
             </div>
             
-            {/* Duration Edit Controls */}
+            {/* Duration Edit */}
             {selectedClip && (
               <div className="mt-3 p-3 rounded-[12px] bg-[#F5F5F0] border border-[#E8E8E3]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-[700] tracking-[0.06em] uppercase">Atur Durasi Clip — Edit Before Export</span>
-                  <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={applyDurationEdit}>Apply</Button>
+                  <span className="text-[11px] font-[700] tracking-[0.06em] uppercase">Atur Durasi — Tes Sebelum Simpan</span>
+                  <div className="flex gap-1.5">
+                    <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={handleTestPlay}>▶ Tes Play</Button>
+                    <Button size="sm" variant="outline" className="h-6 text-[10px] bg-[#0A0A0A] text-white" onClick={applyDurationEdit}>Terapkan</Button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-[600] text-[#6B6B6B]">Start (detik)</label>
+                    <label className="text-[10px] font-[600] text-[#6B6B6B]">Mulai (detik)</label>
                     <input type="number" step={0.1} value={clipStartEdit} onChange={e=>setClipStartEdit(parseFloat(e.target.value)||0)} className="mt-1 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[12px] font-mono" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-[600] text-[#6B6B6B]">End (detik)</label>
+                    <label className="text-[10px] font-[600] text-[#6B6B6B]">Selesai (detik)</label>
                     <input type="number" step={0.1} value={clipEndEdit} onChange={e=>setClipEndEdit(parseFloat(e.target.value)||0)} className="mt-1 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[12px] font-mono" />
                   </div>
                 </div>
                 <div className="mt-3">
-                  <input type="range" min={0} max={duration||100} step={0.1} value={clipStartEdit} onChange={e=>setClipStartEdit(parseFloat(e.target.value))} className="w-full accent-[#0A0A0A] h-1" />
-                  <input type="range" min={0} max={duration||100} step={0.1} value={clipEndEdit} onChange={e=>setClipEndEdit(parseFloat(e.target.value))} className="w-full accent-[#FFD60A] h-1 mt-1" />
+                  <input type="range" min={0} max={duration||100} step={0.1} value={clipStartEdit} onChange={e=>setClipStartEdit(parseFloat(e.target.value))} className="w-full accent-[#0A0A0A] h-1.5" />
+                  <input type="range" min={0} max={duration||100} step={0.1} value={clipEndEdit} onChange={e=>setClipEndEdit(parseFloat(e.target.value))} className="w-full accent-[#FFD60A] h-1.5 mt-1" />
                   <div className="mt-1 flex justify-between text-[10px] font-mono text-[#6B6B6B]">
                     <span>0s</span>
-                    <span className="font-[700] text-[#0A0A0A]">{(clipEndEdit-clipStartEdit).toFixed(1)}s durasi</span>
+                    <span className="font-[700] text-[#0A0A0A]">{(clipEndEdit-clipStartEdit).toFixed(1)}s durasi • Tes dulu baru export</span>
                     <span>{(duration||0).toFixed(1)}s total</span>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <Button className="h-10" disabled={!selectedClip} onClick={doExport}>Export Clip (FFmpeg)</Button>
-              <Button variant="outline" className="h-10" disabled={clips.length===0} onClick={async ()=>{
-                if (!videoFile && !youtubeInfo?.downloadUrl) { alert('Upload file dulu untuk bulk export'); return }
-                setShowExport(true); setProgress(0)
-                for (let idx=0; idx<clips.length; idx++) {
-                  const c = clips[idx]
-                  setExportStatus(`Bulk ${idx+1}/${clips.length}: ${c.hook.slice(0,25)}...`)
-                  setProgress(Math.round((idx/clips.length)*100))
-                  setSelectedClip(c); setHook(c.hook)
-                  await new Promise(r=>setTimeout(r, 300))
-                  if (videoFile && ffmpeg && ffmpegLoaded) {
-                    try {
-                      await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile))
-                      await ffmpeg.exec(['-ss', c.start.toString(), '-i', 'input.mp4', '-t', c.duration.toString(), '-c', 'copy', 'bulk.mp4'])
-                      const data = await ffmpeg.readFile('bulk.mp4') as any
-                      const blob = new Blob([data], { type: 'video/mp4' })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement('a')
-                      a.href = url; a.download = `${projectTitle}-bulk-${idx+1}-${c.label}.mp4`; a.click()
-                      URL.revokeObjectURL(url)
-                      await new Promise(r=>setTimeout(r, 500))
-                    } catch(e){ console.error(e) }
-                  }
-                }
-                setProgress(100); setExportStatus(`Bulk ${clips.length} selesai!`)
-                setTimeout(()=>{ setShowExport(false); setProgress(0); setExportStatus('') }, 2000)
-              }}>Bulk Export ({clips.length})</Button>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <Button className="h-10 bg-[#0A0A0A] text-white hover:bg-[#1A1A1A] text-[12px]" disabled={!selectedClip} onClick={handleTestPlay}>▶ Tes Preview</Button>
+              <Button variant="outline" className="h-10 text-[12px]" disabled={!selectedClip || saving} onClick={handleSaveProject}>{saving ? 'Menyimpan...' : '💾 Simpan'}</Button>
+              <Button className="h-10 bg-[#FFD60A] text-black hover:bg-[#FFC700] text-[12px] font-[700]" disabled={!selectedClip} onClick={doExport}>⬇ Export</Button>
+            </div>
+            <div className="mt-2 text-[10px] text-[#9B9B9B] text-center">
+              Tes preview dulu dengan play button, atur durasi, baru simpan & export. Fungsi save & export sudah aktif.
             </div>
           </Card>
         </div>
 
-        {/* RIGHT - Subtitle Style Visual Picker */}
+        {/* RIGHT - 12 Styles + 10 Animations + Custom Colors */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Subtitle Style — Visual Preview</h2>
-              <button onClick={()=>setShowStylePreview(!showStylePreview)} className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">{showStylePreview ? 'Hide Preview' : 'Show Preview'}</button>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Gaya Subtitle — 12 Style Visual</h2>
+              <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#0A0A0A] text-white">{Object.keys(STYLES).length} STYLE</span>
             </div>
             
-            {showStylePreview && (
-              <div className="mb-4 p-3 rounded-[12px] bg-[#0A0A0A] text-white">
-                <div className="text-[10px] font-[600] tracking-[0.06em] uppercase text-white/60 mb-2">Live Preview — {style.name}</div>
-                <div className="relative rounded-[10px] overflow-hidden bg-[#1A1A1A] h-[120px] flex items-center justify-center">
-                  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=200&fit=crop" className="absolute inset-0 w-full h-full object-cover opacity-50 blur-[1px]" alt="" />
-                  <div className="relative z-10 text-center">
-                    <div className={`inline-block px-3 py-1 rounded-[8px] font-[900] text-[22px] tracking-[-0.02em] ${style.bg !== 'transparent' ? '' : ''}`} style={{
-                      color: style.text,
-                      background: style.bg !== 'transparent' ? style.bg : 'transparent',
-                      WebkitTextStroke: style.sw > 0 ? `${style.sw/2}px ${style.stroke}` : '0',
-                      fontFamily: style.font,
-                      textTransform: style.upper ? 'uppercase' as any : 'none'
-                    }}>
-                      <span style={{ color: style.text }}>{style.previewText}</span> <span style={{ color: style.highlight }}>{style.previewSub}</span>
-                    </div>
-                    <div className="mt-2 text-[10px] text-white/60 font-mono">{style.font} • {style.desc}</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2 mb-6">
-              {Object.entries(STYLES).map(([k,s])=>{
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {Object.entries(STYLES).map(([k,s]: any)=>{
                 const isActive = styleKey===k
                 return (
-                  <button key={k} onClick={()=>setStyleKey(k as any)} className={`text-left rounded-[14px] border p-3 transition relative overflow-hidden ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
+                  <button key={k} onClick={()=>setStyleKey(k)} className={`text-left rounded-[14px] border p-2.5 transition relative overflow-hidden ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="text-[11px] font-[800] tracking-[-0.01em]">{s.name.toUpperCase()}</div>
-                        <div className={`text-[10px] mt-0.5 ${isActive ? 'text-white/60' : 'text-[#6B6B6B]'}`}>{s.desc}</div>
+                        <div className={`text-[9px] mt-0.5 ${isActive ? 'text-white/60' : 'text-[#6B6B6B]'}`}>{s.desc}</div>
                       </div>
-                      <span className={`text-[9px] font-[700] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white text-black' : 'bg-[#F5F5F0] border border-[#E8E8E3]'}`}>{s.usage}</span>
+                      <span className={`text-[8px] font-[700] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white text-black' : 'bg-[#F5F5F0] border border-[#E8E8E3]'}`}>{s.usage}</span>
                     </div>
-                    <div className="mt-3 rounded-[8px] bg-[#F5F5F0] border border-[#E8E8E3] p-2 h-[56px] flex items-center justify-center overflow-hidden relative">
-                      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `url(https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=60&fit=crop)`, backgroundSize: 'cover' }} />
-                      <div className="relative z-10 font-[900] text-[14px] leading-none tracking-[-0.02em]" style={{ 
-                        color: s.text, 
-                        WebkitTextStroke: s.sw>0 ? `${s.sw/3}px ${s.stroke}` : '0',
+                    <div className="mt-2.5 rounded-[10px] border border-black/5 p-2 h-[64px] flex flex-col items-center justify-center overflow-hidden relative" style={{ background: s.bgPreview }}>
+                      <div className="font-[900] text-[15px] leading-[0.9] tracking-[-0.02em] text-center" style={{ 
+                        color: s.text === 'transparent' ? '#FFFFFF' : s.text, 
+                        WebkitTextStroke: s.sw>0 && s.stroke !== 'transparent' ? `${s.sw/3}px ${s.stroke}` : '0',
                         fontFamily: s.font,
-                        textTransform: s.upper ? 'uppercase' as any : 'none'
+                        textTransform: s.upper ? 'uppercase' as any : 'none',
+                        textShadow: k==='shadow' ? '2px 2px 8px rgba(0,0,0,0.6)' : k==='glow' ? `0 0 10px ${s.highlight}` : 'none'
                       }}>
-                        <span style={{ color: s.text }}>{s.previewText.split(' ')[0]}</span> <span style={{ color: s.highlight }}>{s.previewSub}</span>
+                        <div style={{ color: s.text === 'transparent' ? 'transparent' : s.text, WebkitTextStroke: s.text === 'transparent' ? `2px ${s.highlight}` : undefined }}>{s.previewText}</div>
+                        <div style={{ color: s.highlight, fontSize: '11px', marginTop: '2px' }}>{s.previewSub}</div>
                       </div>
                     </div>
                     {isActive && <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#FFD60A] animate-pulse" />}
@@ -875,53 +870,126 @@ export default function EditorPage() {
               })}
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Animasi — Preview Visual</label>
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {Object.entries(ANIMATIONS).map(([k,a])=>{
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Animasi — 10 Animasi + Preview</label>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">{Object.keys(ANIMATIONS).length} ANIM</span>
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-1.5">
+                  {Object.entries(ANIMATIONS).map(([k,a]: any)=>{
                     const isActive = anim===k
                     return (
-                      <button key={k} onClick={()=>setAnim(k as any)} className={`rounded-[12px] border p-2.5 text-left transition ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
+                      <button key={k} onClick={()=>setAnim(k)} className={`rounded-[10px] border p-2 text-left transition ${isActive ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-[700]">{a.name}</span>
-                          <span className={`text-[8px] px-1 py-0.5 rounded-full font-[600] ${isActive ? 'bg-white text-black' : 'bg-[#F5F5F0]'}`}>{a.usage}</span>
+                          <span className="text-[10px] font-[700]">{a.name}</span>
+                          <span className={`text-[7px] px-1 py-0.5 rounded-full font-[600] ${isActive ? 'bg-white text-black' : 'bg-[#F5F5F0]'}`}>{a.usage}</span>
                         </div>
-                        <div className="mt-2 h-[32px] rounded-[8px] bg-[#F5F5F0] border border-[#E8E8E3]/50 flex items-center justify-center overflow-hidden">
-                          <div className={`text-[11px] font-[800] ${isActive ? 'text-[#0A0A0A]' : 'text-[#6B6B6B]'} ${k==='pop' ? 'animate-[pop_1s_ease-in-out_infinite]' : k==='bounce' ? 'animate-bounce' : k==='slide' ? 'animate-pulse' : ''}`} style={{ animation: k==='pop' ? 'pop 1s ease-in-out infinite' : k==='bounce' ? 'bounce 1s infinite' : k==='slide' ? 'slide 0.8s ease infinite' : k==='fade' ? 'fade 1s ease infinite' : '' }}>
-                            {k==='pop' ? 'POP!' : k==='bounce' ? 'BOUNCE' : k==='slide' ? '↑ SLIDE' : k==='fade' ? 'FADE' : k==='karaoke' ? '▭ BOX' : '∿ WAVE'}
+                        <div className="mt-1.5 h-[28px] rounded-[6px] bg-[#F5F5F0] border border-[#E8E8E3]/50 flex items-center justify-center overflow-hidden">
+                          <div className={`text-[9px] font-[800] ${isActive ? 'text-[#0A0A0A]' : 'text-[#6B6B6B]'}`} style={{ animation: isActive ? `${k} 1s ease-in-out infinite` : '' }}>
+                            {a.icon}
                           </div>
                         </div>
-                        <div className={`mt-1.5 text-[9px] ${isActive ? 'text-white/60' : 'text-[#9B9B9B]'}`}>{a.desc}</div>
+                        <div className={`mt-1 text-[8px] ${isActive ? 'text-white/60' : 'text-[#9B9B9B]'}`}>{a.desc}</div>
                       </button>
                     )
                   })}
                 </div>
-                <style>{`@keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}} @keyframes slide{0%{transform:translateY(8px);opacity:0}50%{transform:translateY(0);opacity:1}100%{transform:translateY(-4px);opacity:0}} @keyframes fade{0%,100%{opacity:0.3}50%{opacity:1}}`}</style>
+                <style>{`
+                  @keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+                  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+                  @keyframes slide{0%{transform:translateY(8px);opacity:0}50%{transform:translateY(0);opacity:1}100%{transform:translateY(-4px);opacity:0}}
+                  @keyframes fade{0%,100%{opacity:0.2}50%{opacity:1}}
+                  @keyframes typewriter{0%{width:0}100%{width:100%}}
+                  @keyframes glitch{0%{transform:translate(0)}20%{transform:translate(-2px,2px)}40%{transform:translate(2px,-2px)}60%{transform:translate(-1px,1px)}80%{transform:translate(1px,-1px)}100%{transform:translate(0)}}
+                  @keyframes zoom{0%{transform:scale(0.8)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+                  @keyframes rotate{0%{transform:rotateY(0deg)}50%{transform:rotateY(15deg)}100%{transform:rotateY(0deg)}}
+                  @keyframes wave{0%,100%{transform:translateY(0)}25%{transform:translateY(-4px)}75%{transform:translateY(4px)}}
+                  @keyframes karaoke{0%{background:#FFD60A}100%{background:transparent}}
+                `}</style>
               </div>
 
-              <div>
-                <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Hook Title — Grok AI</label>
-                <div className="mt-2 flex gap-2">
-                  <input value={hook} onChange={e=>setHook(e.target.value)} placeholder="Enter hook..." className="flex-1 h-9 rounded-full border border-[#E8E8E3] bg-white px-4 text-[12px] focus:outline-none focus:border-[#0A0A0A]" />
-                  <Button size="sm" className="h-9 px-3 text-[11px]" onClick={handleGrokHook} disabled={grokLoading || !selectedClip}>
-                    {grokLoading ? '...' : 'Grok AI'}
-                  </Button>
-                </div>
+              <div className="pt-2 border-t border-[#E8E8E3]">
+                <button onClick={()=>setShowCustom(!showCustom)} className="w-full flex items-center justify-between text-[11px] font-[700] tracking-[0.06em] uppercase">
+                  <span>🎨 Custom Warna & Font</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${showCustom ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{showCustom ? 'Tutup' : 'Buka'}</span>
+                </button>
+                
+                {showCustom && (
+                  <div className="mt-3 space-y-3 p-3 rounded-[12px] bg-[#F5F5F0] border border-[#E8E8E3]">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-[600]">Warna Teks</label>
+                        <div className="mt-1 flex gap-2">
+                          <input type="color" value={customTextColor || baseStyle.text === 'transparent' ? '#FFFFFF' : baseStyle.text} onChange={e=>setCustomTextColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
+                          <input value={customTextColor} onChange={e=>setCustomTextColor(e.target.value)} placeholder={baseStyle.text} className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-[600]">Warna Highlight</label>
+                        <div className="mt-1 flex gap-2">
+                          <input type="color" value={customHighlightColor || baseStyle.highlight} onChange={e=>setCustomHighlightColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
+                          <input value={customHighlightColor} onChange={e=>setCustomHighlightColor(e.target.value)} placeholder={baseStyle.highlight} className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-[600]">Warna Stroke</label>
+                        <div className="mt-1 flex gap-2">
+                          <input type="color" value={customStrokeColor || (baseStyle.stroke === 'transparent' ? '#000000' : baseStyle.stroke)} onChange={e=>setCustomStrokeColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
+                          <input value={customStrokeColor} onChange={e=>setCustomStrokeColor(e.target.value)} placeholder={baseStyle.stroke} className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-[600]">Warna Background</label>
+                        <div className="mt-1 flex gap-2">
+                          <input type="color" value={customBgColor && customBgColor !== 'transparent' ? customBgColor : '#FFD60A'} onChange={e=>setCustomBgColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
+                          <input value={customBgColor} onChange={e=>setCustomBgColor(e.target.value)} placeholder="transparent atau #FFD60A" className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="text-[10px] font-[600]">Font Keluarga — {FONTS.length} Font</label>
+                      <select value={customFont} onChange={e=>setCustomFont(e.target.value)} className="mt-1 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px]">
+                        <option value="">Default ({baseStyle.font})</option>
+                        {FONTS.map(f=><option key={f} value={f}>{f}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" className="flex-1 h-7 text-[10px]" onClick={()=>{ setCustomTextColor(''); setCustomHighlightColor(''); setCustomStrokeColor(''); setCustomBgColor(''); setCustomFont('') }}>Reset Custom</Button>
+                      <Button size="sm" className="flex-1 h-7 text-[10px] bg-[#0A0A0A] text-white" onClick={()=>setShowCustom(false)}>Terapkan</Button>
+                    </div>
+
+                    <div className="rounded-[8px] bg-white border border-[#E8E8E3] p-2.5">
+                      <div className="text-[10px] font-[600] mb-1.5">Preview Custom Warna</div>
+                      <div className="rounded-[8px] h-[60px] flex items-center justify-center" style={{ background: baseStyle.bgPreview }}>
+                        <div className="font-[900] text-[16px]" style={{ 
+                          color: style.text === 'transparent' ? 'transparent' : style.text,
+                          WebkitTextStroke: style.text === 'transparent' ? `2px ${style.highlight}` : `${style.sw/3}px ${style.stroke}`,
+                          fontFamily: style.font,
+                          textShadow: styleKey==='glow' ? `0 0 12px ${style.highlight}` : 'none'
+                        }}>
+                          <span style={{ color: style.text === 'transparent' ? undefined : style.text }}>{baseStyle.previewText}</span> <span style={{ color: style.highlight }}>{baseStyle.previewSub}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Position</label>
-                  <select value={pos} onChange={e=>setPos(e.target.value as any)} className="mt-2 w-full h-9 rounded-full border border-[#E8E8E3] bg-white px-3 text-[12px] focus:outline-none focus:border-[#0A0A0A]">
-                    <option value="top">TOP</option>
-                    <option value="center">CENTER</option>
-                    <option value="bottom">BOTTOM</option>
+                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Posisi</label>
+                  <select value={pos} onChange={e=>setPos(e.target.value as any)} className="mt-1.5 w-full h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px]">
+                    <option value="top">ATAS</option>
+                    <option value="center">TENGAH</option>
+                    <option value="bottom">BAWAH</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Words/Line</label>
-                  <div className="mt-2 grid grid-cols-4 gap-1">
+                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Kata/Baris</label>
+                  <div className="mt-1.5 grid grid-cols-4 gap-1">
                     {[1,2,3,4].map(n=>(
                       <button key={n} onClick={()=>setWpl(n)} className={`h-8 rounded-full text-[11px] font-[600] border ${wpl===n ? 'bg-[#0A0A0A] text-white border-[#0A0A0A]' : 'bg-white border-[#E8E8E3] hover:border-[#0A0A0A]'}`}>{n}</button>
                     ))}
@@ -931,23 +999,34 @@ export default function EditorPage() {
 
               <div>
                 <div className="flex justify-between">
-                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Font Size</label>
-                  <span className="text-[10px] font-mono">{fontSize}px</span>
+                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Ukuran Font</label>
+                  <span className="text-[10px] font-mono font-[600]">{fontSize}px</span>
                 </div>
-                <input type="range" min={40} max={110} value={fontSize} onChange={e=>setFontSize(Number(e.target.value))} className="w-full mt-2 accent-[#0A0A0A]" />
+                <input type="range" min={36} max={120} value={fontSize} onChange={e=>setFontSize(Number(e.target.value))} className="w-full mt-2 accent-[#0A0A0A] h-1.5" />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Judul Hook — AI Viral</label>
+                <div className="mt-1.5 flex gap-2">
+                  <input value={hook} onChange={e=>setHook(e.target.value)} placeholder="Tulis hook viral..." className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] focus:outline-none focus:border-[#0A0A0A]" />
+                  <Button size="sm" className="h-8 px-3 text-[10px] bg-[#0A0A0A] text-white" onClick={handleAiHook} disabled={aiLoading || !selectedClip}>
+                    {aiLoading ? '...' : 'AI'}
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>
 
           <Card className="p-4 bg-[#0A0A0A] text-white border-[#0A0A0A]">
-            <h3 className="text-[11px] font-[700] tracking-[0.06em] uppercase">Editor Features • Preview Before Export</h3>
+            <h3 className="text-[11px] font-[700] tracking-[0.06em] uppercase">Fitur Editor — Lengkap</h3>
             <div className="mt-2 text-[11px] leading-[1.5] text-white/60 space-y-1">
-              <div>✓ Visual style picker — lihat style sebelum pilih</div>
-              <div>✓ Animasi preview — 6 animasi dengan demo</div>
-              <div>✓ Play preview real — loop, speed, seek</div>
-              <div>✓ Atur durasi clip — edit start/end sebelum export</div>
-              <div>✓ FFmpeg trim real + canvas subtitle burn</div>
-              <div>✓ Export MP4 1080x1920 60fps no watermark</div>
+              <div>✓ 12 gaya subtitle + preview visual (bukan hitam)</div>
+              <div>✓ 10 animasi + demo live</div>
+              <div>✓ Custom warna: teks, highlight, stroke, bg + 8 font</div>
+              <div>✓ Tombol play besar di preview + tes sebelum export</div>
+              <div>✓ Atur durasi + speed + loop + timeline scrub</div>
+              <div>✓ Simpan project + export MP4 1080x1920 — fungsi aktif</div>
+              <div>✓ Gratis tanpa watermark • Made by XySpace</div>
             </div>
           </Card>
         </div>
@@ -957,13 +1036,13 @@ export default function EditorPage() {
         <div className="fixed inset-0 z-50 bg-[#0A0A0A]/60 backdrop-blur-xl flex items-center justify-center p-4">
           <Card className="w-full max-w-[360px] p-6 text-center">
             <div className="mx-auto h-12 w-12 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center font-[800] animate-pulse">A</div>
-            <div className="mt-4 text-[14px] font-[700]">Exporting clip</div>
-            <div className="text-[12px] text-[#6B6B6B] mt-1">{STYLES[styleKey].name} • {ANIMATIONS[anim].name} • {hook.slice(0,30)}...</div>
-            <div className="mt-1 text-[11px] text-[#9B9B9B]">{exportStatus} • {(clipEndEdit-clipStartEdit).toFixed(1)}s</div>
+            <div className="mt-4 text-[14px] font-[700]">Mengekspor clip</div>
+            <div className="text-[12px] text-[#6B6B6B] mt-1">{STYLES[styleKey]?.name} • {ANIMATIONS[anim]?.name} • {hook.slice(0,30)}...</div>
+            <div className="mt-1 text-[11px] text-[#9B9B9B]">{exportStatus} • {(clipEndEdit-clipStartEdit).toFixed(1)}s • {fontSize}px</div>
             <div className="mt-5 h-1.5 rounded-full bg-[#F5F5F0] overflow-hidden">
               <div className="h-full bg-[#0A0A0A] transition-all duration-300" style={{ width: `${progress}%` }} />
             </div>
-            <div className="mt-2 text-[11px] font-mono">{progress}% • {ffmpegLoaded ? 'FFmpeg Ready' : 'Canvas'}</div>
+            <div className="mt-2 text-[11px] font-mono">{progress}% • Siap unduh</div>
           </Card>
         </div>
       )}
