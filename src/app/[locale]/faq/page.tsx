@@ -3,24 +3,29 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 const faqsId = [
-  { q: "Apakah AutoClipp AI gratis?", a: "Ya, free Rp 0 selamanya 5 projects 10 clips. No watermark. Upgrade mulai Rp 5.000/bulan untuk lebih banyak clips." },
-  { q: "Apakah auth Cloudflare sudah berfungsi?", a: "Ya, sudah live di autoclipp-auth.akuntiktok76y.workers.dev. Google OAuth client m02ck9r... redirect sudah set, email verification via Resend active, JWT httpOnly Secure." },
-  { q: "Bagaimana sistem langganan QRIS/DANA real verification?", a: "User checkout plan 5k-100k → generate QRIS string EMV + order_id → tampil QR image → user scan pakai DANA/GoPay/OVO, bayar sesuai nominal → Midtrans webhook /payment/webhook/midtrans auto settlement → subscription active 30 hari. Jika Midtrans belum set, admin manual approve di /admin/payments. Semua real, total revenue SUM(amount) paid dari D1." },
-  { q: "Admin login apa?", a: "Username: kall, Password: Haekal123, plus captcha 6 karakter alphanumeric case sensitive super ketat, expires 2 menit, rate limit 5 fail lock 15 menit. Dashboard di /admin/dashboard dengan stats real user, realtime analytics." },
-  { q: "Logo branding?", a: "Logo monokrom simple A + play, premium, file /logo.png, /icon.png, /favicon.png, /og-image.png 1200x630 untuk OG. Made by XySpace." },
-  { q: "SEO, OG, favicon sudah diatur?", a: "Ya, title template, description, keywords, OG image 1200x630, favicon png, apple touch, Twitter card, theme-color #0A0A0A, robots, alternates id/en." },
-  { q: "Realtime real user analytics?", a: "Ya, D1 tables analytics_events + analytics_sessions, track page_view, IP CF-Connecting-IP, country CF-IPCountry, device mobile/desktop, referrer, session localStorage, polling 5 detik di admin dashboard. Active now last 5 min, today views, top pages 24h, countries, recent events semua real." },
-  { q: "Multi bahasa auto deteksi HP?", a: "Ya, middleware deteksi Accept-Language header + CF-IPCountry + cookie NEXT_LOCALE. Route /id/* dan /en/*, auto redirect. Contoh autoclipp-ai.vercel.app/id/ atau /en/, semua price, terms, legal, docs, faq sudah translate." },
-  { q: "Backend sudah ready siap pakai?", a: "Ya, Cloudflare Worker + D1 + R2, Vercel Next.js, Supabase, Cloudinary, Resend semua ready. Total user COUNT(*) real dari D1, bukan fake. Made by XySpace." },
-  { q: "Bagaimana cara ganti Google OAuth secret?", a: "Kasih client ID + secret baru, gue update via wrangler secret put GOOGLE_CLIENT_SECRET dan deploy. Redirect URI harus https://autoclipp-auth.../auth/google/callback." },
+  { q: "Apakah AutoClipp AI gratis?", a: "Ya, paket Gratis Rp 0 selamanya dengan 5 project dan 10 clip per bulan. Tanpa watermark. Upgrade mulai Rp 5.000/bulan untuk fitur lebih." },
+  { q: "Bagaimana cara kerja deteksi viral?", a: "AI kami menganalisis transkrip video, mencari hook, pertanyaan, angka, puncak emosi, dan momen yang berpotensi viral. Setiap momen diberi skor 0-100, kamu dapat 5 clip terbaik." },
+  { q: "Format video apa yang didukung?", a: "MP4, MOV hingga 2GB. Kamu juga bisa paste URL YouTube, kami akan proses otomatis. Export 9:16 1080x1920 60fps siap posting ke TikTok, Reels, Shorts." },
+  { q: "Apa saja gaya subtitle yang tersedia?", a: "6 gaya: Hormozi (bold uppercase), MrBeast (colorful), Karaoke (word highlight), Minimal (clean), TikTok (viral style), Editorial (professional). Semua bisa custom font, warna, posisi, animasi." },
+  { q: "Bagaimana sistem langganan dan pembayaran?", a: "Pilih paket 5k-100k, checkout, scan QRIS pakai DANA/GoPay/OVO/ShopeePay, bayar sesuai nominal, akses otomatis aktif 30 hari. Mendukung QRIS, DANA, GoPay, OVO, VA BCA/Mandiri/BNI/BRI. Semua verifikasi real." },
+  { q: "Apakah rating dan testimoni itu real?", a: "Ya, 100% real dari pengguna asli. Kami tidak pernah membuat review palsu. Kamu bisa lihat rating realtime di homepage dan beri ulasan setelah login. Semua disimpan dan ditampilkan apa adanya." },
+  { q: "Apakah ada watermark?", a: "Tidak ada watermark di semua paket, termasuk gratis. Clip kamu bersih siap posting." },
+  { q: "Bagaimana dengan privasi video saya?", a: "Video kamu tetap milikmu. Kami tidak menggunakannya untuk training AI tanpa izin. Data kamu aman dan tidak dijual." },
+  { q: "Multi bahasa auto deteksi HP?", a: "Ya, otomatis deteksi bahasa HP kamu. Buka autoclipp-ai.vercel.app akan redirect ke /id/ atau /en/ sesuai bahasa. Semua harga, teks, dan konten sudah full translate id dan en." },
+  { q: "Siapa yang membuat AutoClipp AI?", a: "Dibuat oleh XySpace untuk kreator Indonesia. Logo monokrom A + play, branding premium simple. Fokus kami adalah membantu kreator, bukan pamer teknologi backend." },
 ]
 
 const faqsEn = [
-  { q: "Is AutoClipp AI free?", a: "Yes, free $0 forever 5 projects 10 clips. No watermark. Upgrade from $0.32/month." },
-  { q: "Is Cloudflare auth working?", a: "Yes, live at autoclipp-auth... Google OAuth client m02ck... redirect set, email verification via Resend active." },
-  { q: "How does QRIS/DANA real verification work?", a: "Checkout plan $0.32-$6.30 → generate QRIS + order_id → show QR → user scans with DANA/GoPay, pays → Midtrans webhook settlement → subscription active 30 days. Or admin manual approve." },
-  { q: "Admin login?", a: "Username: kall, Password: Haekal123, plus captcha 6 chars case sensitive super strict, expires 2 min." },
-  { q: "Branding logo?", a: "Simple monochrome A + play, premium, /logo.png, /icon.png, /og-image.png 1200x630. Made by XySpace." },
+  { q: "Is AutoClipp AI free?", a: "Yes, Free plan $0 forever with 5 projects and 10 clips per month. No watermark. Upgrade from $0.32/month for more features." },
+  { q: "How does viral detection work?", a: "Our AI analyzes video transcript, finds hooks, questions, numbers, emotional peaks, and viral-potential moments. Each moment scored 0-100, you get top 5 clips." },
+  { q: "What video formats are supported?", a: "MP4, MOV up to 2GB. You can also paste YouTube URL, we process automatically. Export 9:16 1080x1920 60fps ready for TikTok, Reels, Shorts." },
+  { q: "What subtitle styles are available?", a: "6 styles: Hormozi (bold uppercase), MrBeast (colorful), Karaoke (word highlight), Minimal (clean), TikTok (viral), Editorial (professional). All customizable." },
+  { q: "How does subscription and payment work?", a: "Choose plan $0.32-$6.30, checkout, scan QRIS with DANA/GoPay/OVO/ShopeePay, pay exact amount, access auto active 30 days. Supports QRIS, DANA, GoPay, OVO, VA. All real verification." },
+  { q: "Are ratings and testimonials real?", a: "Yes, 100% real from genuine users. We never create fake reviews. You can see realtime ratings on homepage and leave review after login. All stored and displayed as is." },
+  { q: "Is there watermark?", a: "No watermark on all plans, including free. Your clips clean ready to post." },
+  { q: "What about my video privacy?", a: "Your videos remain yours. We don't use them for AI training without permission. Your data safe and not sold." },
+  { q: "Multi language auto detect?", a: "Yes, auto detects your phone language. Open autoclipp-ai.vercel.app will redirect to /id/ or /en/ based on language. All prices, texts, content fully translated id and en." },
+  { q: "Who made AutoClipp AI?", a: "Built by XySpace for Indonesian creators. Monochrome A + play logo, premium simple branding. Our focus is helping creators, not showing off backend tech." },
 ]
 
 export default async function FAQPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -33,8 +38,8 @@ export default async function FAQPage({ params }: { params: Promise<{ locale: st
     <div className="min-h-screen bg-[#FCFCF9]">
       <div className="mx-auto max-w-[800px] px-6 py-12">
         <Link href={`/${locale}`} className="text-[12px] text-[#6B6B6B]">← {isId ? 'Kembali' : 'Back'}</Link>
-        <h1 className="mt-6 text-[32px] font-[750] tracking-[-0.03em]">{isId ? 'FAQ — Super Lengkap' : 'FAQ — Complete'}</h1>
-        <p className="mt-2 text-[12px] text-[#6B6B6B]">Made by XySpace • Real backend • QRIS/DANA verified • Admin kall/Haekal123</p>
+        <h1 className="mt-6 text-[32px] font-[750] tracking-[-0.03em]">{isId ? 'FAQ — Pertanyaan Umum' : 'FAQ — Frequently Asked'}</h1>
+        <p className="mt-2 text-[12px] text-[#6B6B6B]">{isId ? 'Jawaban untuk pertanyaan yang sering ditanyakan' : 'Answers to frequently asked questions'} • {isId ? 'Dibuat oleh' : 'Made by'} XySpace</p>
 
         <div className="mt-8 space-y-4">
           {faqs.map((f, i) => (
@@ -46,10 +51,14 @@ export default async function FAQPage({ params }: { params: Promise<{ locale: st
         </div>
 
         <div className="mt-12 rounded-[16px] bg-[#0A0A0A] text-white p-6">
-          <h3 className="text-[13px] font-[700]">Backend Real Ready?</h3>
+          <h3 className="text-[13px] font-[700]">{isId ? 'Masih ada pertanyaan?' : 'Still have questions?'}</h3>
           <p className="mt-2 text-[12px] text-white/60 leading-[1.6]">
-            Ya, semua ready: Cloudflare Worker auth + D1 users, subscriptions, payments, analytics_events real, Vercel Next.js edge optimized, Cloudinary storage, Supabase projects, Resend email verification, Midtrans QRIS/DANA webhook, admin dashboard kall/Haekal123 captcha super ketat, logo monokrom, SEO OG favicon, multi bahasa /id /en auto deteksi HP via Accept-Language + CF-IPCountry, total user COUNT(*) real, revenue SUM real, realtime active now polling 5s. Made by XySpace.
+            {isId ? 'Hubungi tim XySpace. Kami siap membantu kreator Indonesia membuat viral shorts dengan mudah. Semua fitur real, rating real, pembayaran real terverifikasi.' : 'Contact XySpace team. We are ready to help Indonesian creators make viral shorts easily. All features real, ratings real, payments real verified.'}
           </p>
+          <div className="mt-4 flex gap-2">
+            <Link href={`/${locale}/docs`} className="rounded-full bg-white text-black px-4 py-2 text-[11px] font-[600]">Docs</Link>
+            <Link href={`/${locale}/subscription`} className="rounded-full bg-white/10 border border-white/20 px-4 py-2 text-[11px] font-[600]">{isId ? 'Lihat Harga' : 'View Pricing'}</Link>
+          </div>
         </div>
       </div>
     </div>

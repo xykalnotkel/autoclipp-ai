@@ -1,5 +1,46 @@
-export function Features() {
-  const features = [
+"use client"
+
+export function Features({ locale = 'id' }: { locale?: string }) {
+  const isId = locale === 'id'
+
+  const features = isId ? [
+    {
+      title: "Auto Transkrip",
+      description: "Word-level timestamp, 99 bahasa. Transkrip cepat dan akurat untuk video apapun.",
+      stat: "99%",
+      detail: "akurasi"
+    },
+    {
+      title: "Deteksi Viral",
+      description: "AI scoring setiap momen. Temukan hook, pertanyaan, angka, puncak emosi otomatis.",
+      stat: "94%",
+      detail: "viral rate"
+    },
+    {
+      title: "Smart Crop",
+      description: "Face tracking jaga subjek tetap center di 9:16 otomatis. Tanpa keyframing manual.",
+      stat: "Auto",
+      detail: "centering"
+    },
+    {
+      title: "Subtitle Animasi",
+      description: "6 style, 6 animasi. Bisa custom font, warna, posisi sepenuhnya.",
+      stat: "6",
+      detail: "style"
+    },
+    {
+      title: "Export Instan",
+      description: "Export clip 1080x1920 60fps siap posting. Tanpa watermark, tanpa menunggu.",
+      stat: "60",
+      detail: "fps"
+    },
+    {
+      title: "Manajemen Project",
+      description: "Atur semua clip, search, filter, dan bulk export konten viral kamu.",
+      stat: "∞",
+      detail: "project"
+    }
+  ] : [
     {
       title: "Auto Transcribe",
       description: "Word-level timestamps, 99 languages supported. Fast and accurate transcription for any video.",
@@ -43,15 +84,15 @@ export function Features() {
       <div className="mx-auto max-w-[1280px] px-6 lg:px-8 py-20 lg:py-28">
         <div className="max-w-[640px]">
           <div className="inline-flex items-center gap-2 rounded-full bg-[#F5F5F0] px-3 py-1 text-[11px] font-[650] tracking-[0.04em] uppercase">
-            Features
+            {isId ? 'Fitur' : 'Features'}
           </div>
           <h2 className="mt-4 text-[32px] lg:text-[40px] font-[700] leading-[1.05] tracking-[-0.03em]">
-            Everything you need to go viral.
+            {isId ? 'Semua yang kamu butuh untuk viral.' : 'Everything you need to go viral.'}
             <br />
-            <span className="text-[#6B6B6B]">Nothing you dont.</span>
+            <span className="text-[#6B6B6B]">{isId ? 'Tidak ada yang tidak perlu.' : 'Nothing you dont.'}</span>
           </h2>
           <p className="mt-4 text-[15px] leading-[1.6] text-[#6B6B6B]">
-            Built for creators who ship daily. No complex timelines, no learning curve. Just upload and get clips that convert.
+            {isId ? 'Dibuat untuk kreator yang upload harian. Tanpa timeline kompleks, tanpa learning curve.' : 'Built for creators who ship daily. No complex timelines, no learning curve. Just upload and get clips that convert.'}
           </p>
         </div>
 
@@ -78,15 +119,11 @@ export function Features() {
           <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[radial-gradient(ellipse_at_top_right,_rgba(255,214,10,0.15),transparent_60%)] pointer-events-none" />
           <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
-              <h3 className="text-[20px] font-[700] tracking-[-0.02em]">Free to start. No credit card.</h3>
-              <p className="mt-2 text-[13px] leading-[1.5] text-white/60 max-w-[480px]">
-                All core features included. Export unlimited clips, no watermark. Start creating in seconds.
-              </p>
+              <h3 className="text-[20px] font-[700] tracking-[-0.02em]">{isId ? 'Siap viral hari ini?' : 'Ready to go viral today?'}</h3>
+              <p className="mt-2 text-[13px] text-white/60 max-w-[420px]">{isId ? 'Gratis selamanya, tanpa watermark, tanpa kartu kredit. Mulai buat clip viral dalam detik.' : 'Free forever, no watermark, no credit card. Start creating viral clips in seconds.'}</p>
             </div>
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-white/10 border border-white/10 px-4 py-2 text-[12px] font-[600]">No Watermark</div>
-              <div className="rounded-full bg-white/10 border border-white/10 px-4 py-2 text-[12px] font-[600]">Unlimited</div>
-              <div className="rounded-full bg-[#FFD60A] text-black px-4 py-2 text-[12px] font-[700]">Free Forever</div>
+              <div className="text-[11px] text-white/60 hidden lg:block">{isId ? 'Dibuat oleh' : 'Made by'} XySpace • {isId ? 'Tanpa watermark' : 'No watermark'}</div>
             </div>
           </div>
         </div>

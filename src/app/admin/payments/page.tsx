@@ -83,8 +83,8 @@ export default function AdminPaymentsPage() {
       <div className="mx-auto max-w-[1280px] px-6 py-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[22px] font-[700] tracking-[-0.02em]">Payments — QRIS/DANA Real Verification</h1>
-            <p className="text-[12px] text-[#6B6B6B] mt-1">Ketika user scan QRIS/DANA dan bayar, Midtrans webhook auto verify. Atau manual approve di sini.</p>
+            <h1 className="text-[22px] font-[700] tracking-[-0.02em]">Payments — Real Verification</h1>
+            <p className="text-[12px] text-[#6B6B6B] mt-1">Verifikasi pembayaran QRIS/DANA. Ketika user bayar sesuai nominal, akses otomatis aktif.</p>
           </div>
           <div className="flex items-center gap-2">
             <select value={filter} onChange={e => setFilter(e.target.value)} className="h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[12px]">
@@ -103,7 +103,7 @@ export default function AdminPaymentsPage() {
           ) : payments.length === 0 ? (
             <Card className="p-12 text-center">
               <div className="text-[13px] font-[600]">No payments</div>
-              <div className="text-[11px] text-[#6B6B6B] mt-1">Belum ada pembayaran QRIS/DANA. User harus checkout di /subscription</div>
+              <div className="text-[11px] text-[#6B6B6B] mt-1">Belum ada pembayaran. User harus checkout di halaman pricing.</div>
             </Card>
           ) : (
             payments.map(p => (
@@ -116,7 +116,6 @@ export default function AdminPaymentsPage() {
                       <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">{p.payment_method?.toUpperCase()} • {p.plan}</span>
                     </div>
                     <div className="mt-1.5 text-[11px] text-[#6B6B6B]">{p.email} • {p.name} • Rp {p.amount.toLocaleString('id-ID')} • {new Date(p.created_at).toLocaleString('id-ID')}</div>
-                    <div className="mt-2 text-[10px] font-mono bg-[#F5F5F0] border border-[#E8E8E3] rounded-[8px] p-2 truncate">QRIS: {p.qris_string?.slice(0, 80)}...</div>
                   </div>
                   
                   <div className="flex items-center gap-2 shrink-0">
@@ -130,7 +129,7 @@ export default function AdminPaymentsPage() {
                           <Button size="sm" variant="outline" className="h-8 text-[11px]" onClick={() => handleVerify(p.id, 'reject')}>Reject</Button>
                         </>
                       )}
-                      {p.status === 'paid' && <span className="text-[11px] font-[600] text-green-600">✓ Verified — subscription active</span>}
+                      {p.status === 'paid' && <span className="text-[11px] font-[600] text-green-600">✓ Verified</span>}
                       <div className="text-[10px] text-[#9B9B9B]">ID: {p.id.slice(0, 8)}</div>
                     </div>
                   </div>
@@ -140,14 +139,13 @@ export default function AdminPaymentsPage() {
           )}
         </div>
 
-        <Card className="mt-8 p-5 bg-[#0A0A0A] text-white border-[#0A0A0A]">
-          <div className="text-[12px] font-[700]">Cara kerja real QRIS/DANA verification:</div>
-          <div className="mt-2 text-[11px] leading-[1.6] text-white/60 space-y-1">
-            <div>1. User checkout plan Rp 5.000-100.000 di /subscription → POST /payment/create-qris dengan payment_method qris/dana</div>
-            <div>2. Worker generate QRIS string (format EMV QRIS Indonesia) + order_id AUTOCLIPP-XXXX → simpan D1 status pending → return qris_url untuk di-scan</div>
-            <div>3. User scan pakai DANA/GoPay/OVO/BCA → bayar sesuai nominal → Midtrans (jika server key set) kirim webhook POST /payment/webhook/midtrans dengan transaction_status settlement</div>
-            <div>4. Webhook verify → update payments status paid, insert subscriptions active 30 hari, kirim email Resend → user langsung dapat akses langganan</div>
-            <div>5. Jika Midtrans belum set, admin manual cek mutasi DANA/QRIS, lalu klik Approve di dashboard ini → subscription aktif. Polling /payment/status/:id untuk cek status dari frontend.</div>
+        <Card className="mt-8 p-5 bg-white border-[#E8E8E3]">
+          <div className="text-[12px] font-[700]">Cara kerja verifikasi:</div>
+          <div className="mt-2 text-[11px] leading-[1.6] text-[#6B6B6B] space-y-1">
+            <div>1. User checkout paket di halaman pricing → sistem generate QRIS + order ID</div>
+            <div>2. User scan pakai DANA/GoPay/OVO dan bayar sesuai nominal</div>
+            <div>3. Sistem otomatis deteksi pembayaran dan aktifkan langganan 30 hari</div>
+            <div>4. Jika auto verifikasi belum aktif, admin bisa manual approve di dashboard ini</div>
           </div>
         </Card>
       </div>

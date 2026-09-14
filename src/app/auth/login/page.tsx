@@ -105,9 +105,9 @@ export default function LoginPage() {
           <Link href="/" className="text-[12px] font-[500] text-[#6B6B6B] hover:text-[#0A0A0A]">← Back to home</Link>
         </div>
 
-        <div className="mt-8 rounded-[12px] bg-[#0A0A0A] text-white p-4 text-[11px] leading-[1.5]">
-          <div className="font-[600]">Cloudflare Auth Backend</div>
-          <div className="text-white/60 mt-1">Secure JWT, D1 database, Resend email verification, Google OAuth. All tokens server-side, optimized for edge.</div>
+        <div className="mt-8 rounded-[12px] bg-[#F5F5F0] border border-[#E8E8E3] p-4 text-[11px] leading-[1.5] text-center">
+          <div className="font-[600]">Made by XySpace</div>
+          <div className="text-[#6B6B6B] mt-1">Aman, cepat, tanpa watermark. Gratis selamanya untuk fitur inti.</div>
         </div>
       </div>
     </div>

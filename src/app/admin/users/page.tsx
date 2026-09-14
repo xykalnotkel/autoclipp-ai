@@ -41,8 +41,8 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="mx-auto max-w-[1280px] px-6 py-8">
-        <h1 className="text-[22px] font-[700] tracking-[-0.02em]">Users</h1>
-        <p className="text-[12px] text-[#6B6B6B] mt-1">All registered users — email verified via Resend + Google OAuth</p>
+        <h1 className="text-[22px] font-[700] tracking-[-0.02em]">Users — Real Data</h1>
+        <p className="text-[12px] text-[#6B6B6B] mt-1">All registered users • Verified • Real</p>
 
         <Card className="mt-6 overflow-hidden p-0">
           <div className="overflow-auto">

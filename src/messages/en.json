@@ -18,7 +18,7 @@
     "title_2": "viral shorts",
     "title_3": "in seconds.",
     "desc": "Upload long videos. Our AI finds viral moments, adds animated subtitles, and exports ready-to-post clips. Free forever.",
-    "trusted": "Trusted by 12k+ creators",
+    "trusted": "Trusted by thousands of creators",
     "stats_clips": "Clips Generated",
     "stats_accuracy": "Accuracy Rate",
     "stats_plan": "Forever Free"
@@ -52,12 +52,12 @@
     "start_free": "Start Free",
     "upgrade": "Upgrade to Pro",
     "plans": {
-      "free": { "name": "Free", "price": "$0", "desc": "To try" },
-      "basic": { "name": "Basic", "price": "$0.32", "desc": "For beginners" },
-      "starter": { "name": "Starter", "price": "$0.95", "desc": "For active creators" },
-      "creator": { "name": "Creator", "price": "$2.20", "desc": "For pros" },
-      "pro": { "name": "Pro", "price": "$4.10", "desc": "For small teams" },
-      "business": { "name": "Business", "price": "$6.30", "desc": "For business" }
+      "free": { "name": "Free", "price": "$0", "desc": "To try", "features": ["5 projects", "10 clips / month", "6 subtitle styles", "720p export"] },
+      "basic": { "name": "Basic", "price": "$0.32", "desc": "For beginners", "features": ["20 projects", "50 clips", "1080p", "No watermark"] },
+      "starter": { "name": "Starter", "price": "$0.95", "desc": "For active creators", "features": ["50 projects", "150 clips", "All styles", "Custom fonts", "1080p 60fps"] },
+      "creator": { "name": "Creator", "price": "$2.20", "desc": "For pros", "features": ["150 projects", "500 clips", "4K export", "Team of 3"] },
+      "pro": { "name": "Pro", "price": "$4.10", "desc": "For small teams", "features": ["Unlimited projects", "2000 clips", "4K 60fps", "Team of 10"] },
+      "business": { "name": "Business", "price": "$6.30", "desc": "For business", "features": ["Unlimited everything", "8K", "Unlimited team", "White label"] }
     }
   },
   "editor": {
@@ -83,16 +83,31 @@
     "badge": "STARTING FROM $0.32 / MONTH",
     "title": "Choose plan that fits creators",
     "subtitle": "Start free forever, upgrade anytime from $0.32 to $6.30. No watermark, cancel anytime.",
-    "qris_badge": "REAL QRIS & DANA VERIFICATION • $0.32 - $6.30",
+    "qris_badge": "QRIS & DANA PAYMENT • $0.32 - $6.30",
     "qris_title": "Pay QRIS/DANA, instantly active",
-    "qris_desc": "Scan QRIS with DANA, GoPay, OVO, ShopeePay. System auto verifies when paid. Starting $0.32.",
+    "qris_desc": "Scan QRIS with DANA, GoPay, OVO, ShopeePay. Access automatically active after payment verification.",
     "payment_methods": "Payment Methods",
     "payment_desc": "Support GoPay, OVO, DANA, ShopeePay, QRIS, VA BCA/Mandiri/BNI/BRI via Midtrans.",
     "email_verif": "Email Verification",
-    "email_verif_desc": "All users must verify email via Resend. 15 min expiry, secure JWT httpOnly. Google OAuth auto verified.",
+    "email_verif_desc": "Verify email for account security. Link valid for 15 minutes. Google login auto verified.",
     "current_plan": "Current Plan",
     "upgrade_to": "Upgrade to",
     "pay_via": "Pay via"
+  },
+  "testimonials": {
+    "badge": "Real Testimonials",
+    "title": "Trusted by Indonesian creators",
+    "subtitle": "Real ratings and feedback from our users. All genuine, no fake.",
+    "average_rating": "Average Rating",
+    "total_reviews": "Reviews",
+    "write_review": "Write a Review",
+    "your_rating": "Your Rating",
+    "your_feedback": "Your feedback (5-500 chars)",
+    "submit": "Submit Review",
+    "submitting": "Submitting...",
+    "thank_you": "Thanks for your review!",
+    "login_to_review": "Login to leave a review",
+    "no_reviews": "No reviews yet. Be the first!"
   },
   "legal": {
     "terms_title": "Terms and Conditions",
@@ -101,16 +116,18 @@
     "docs_title": "Documentation",
     "faq_title": "FAQ",
     "last_updated": "Last updated",
-    "contact": "Contact us"
+    "contact": "Contact us",
+    "company": "Company",
+    "made_by_desc": "AutoClipp AI is built by XySpace for Indonesian creators. We focus on helping creators turn long videos into viral shorts easily, fast, and without watermark."
   },
   "admin": {
     "dashboard": "Dashboard",
-    "payments": "QRIS Payments",
-    "users_real": "Real Users",
+    "payments": "Payments",
+    "users_real": "Users",
     "login_title": "Admin Dashboard",
-    "login_subtitle": "Super strict — captcha case sensitive, 2 min expiry",
+    "login_subtitle": "Restricted access for admin only",
     "username": "Username",
     "password": "Password",
-    "captcha": "Captcha — Case Sensitive!"
+    "captcha": "Captcha"
   }
 }

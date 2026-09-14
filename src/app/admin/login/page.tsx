@@ -81,7 +81,7 @@ export default function AdminLoginPage() {
         <div className="text-center mb-8">
           <div className="mx-auto h-10 w-10 rounded-[12px] bg-white flex items-center justify-center text-black font-[800]">A</div>
           <h1 className="mt-4 text-[22px] font-[700] tracking-[-0.02em] text-white">Admin Dashboard</h1>
-          <p className="text-[12px] text-white/50 mt-1">Super ketat — captcha case sensitive, 2 menit expired</p>
+          <p className="text-[12px] text-white/50 mt-1">Secure access • Made by XySpace</p>
         </div>
 
         <Card className="p-6 bg-white">
@@ -139,7 +139,7 @@ export default function AdminLoginPage() {
             </Button>
 
             <div className="text-[10px] text-[#9B9B9B] text-center leading-[1.4]">
-              Default: admin / admin123 (first login will create admin).<br/>Ganti password setelah login pertama.
+              Akses terbatas. Hanya untuk admin resmi.<br/>Made by XySpace • Secure Access
             </div>
           </form>
         </Card>

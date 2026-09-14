@@ -1,4 +1,4 @@
-import { getMessages, type Locale, isValidLocale } from '@/lib/i18n'
+import { isValidLocale } from '@/lib/i18n'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
@@ -12,42 +12,57 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
       <div className="mx-auto max-w-[800px] px-6 py-12">
         <Link href={`/${locale}`} className="text-[12px] text-[#6B6B6B] hover:text-black">← {isId ? 'Kembali' : 'Back'}</Link>
         <h1 className="mt-6 text-[32px] font-[750] tracking-[-0.03em]">{isId ? 'Kebijakan Privasi' : 'Privacy Policy'}</h1>
-        <p className="mt-2 text-[12px] text-[#6B6B6B]">Last updated: 14 Sep 2026 • Made by XySpace • Real user analytics</p>
+        <p className="mt-2 text-[12px] text-[#6B6B6B]">{isId ? 'Terakhir diperbarui' : 'Last updated'}: 14 Sep 2026 • {isId ? 'Dibuat oleh' : 'Made by'} XySpace</p>
 
         <div className="mt-8 space-y-8 text-[13px] leading-[1.7]">
           <section>
             <h2 className="text-[16px] font-[700]">1. {isId ? 'Data yang Kami Kumpulkan' : 'Data We Collect'}</h2>
-            <div className="mt-3 space-y-2 text-[#3A3A3A]">
-              <p><strong>Real User Analytics (Realtime):</strong> {isId ? 'Kami track page views, session, IP (CF-Connecting-IP), country via CF-IPCountry, city, device (mobile/desktop), referrer, time on page. Semua disimpan di Cloudflare D1 analytics_events dan analytics_sessions. Data 100% real, no fake.' : 'We track page views, session, IP, country via CF-IPCountry, city, device, referrer, time on page. All stored in Cloudflare D1. 100% real data.'}</p>
-              <p><strong>Auth Data:</strong> Email, name, avatar dari Google OAuth atau email magic link via Resend. Password admin hash PBKDF2, tidak pernah plain text. Email verification wajib.</p>
-              <p><strong>Video Data:</strong> Video upload ke Cloudinary (folder autoclipp/uploads) dengan public_id, duration, thumbnail eager. Tidak simpan video di server kami, langsung ke Cloudinary CDN.</p>
-              <p><strong>Payment Data:</strong> Order ID, amount Rp 5.000-100.000, payment_method QRIS/DANA/GoPay, qris_string, status pending/paid, paid_at. Untuk verifikasi real ketika user scan QRIS dan bayar.</p>
+            <div className="mt-3 space-y-3 text-[#3A3A3A]">
+              <p><strong>{isId ? 'Akun:' : 'Account:'}</strong> {isId ? 'Email, nama, foto profil dari Google OAuth atau email. Kami tidak pernah menyimpan password dalam bentuk plain text.' : 'Email, name, profile picture from Google OAuth or email. We never store passwords in plain text.'}</p>
+              <p><strong>{isId ? 'Video:' : 'Video:'}</strong> {isId ? 'Video yang kamu upload untuk diproses. Kami tidak menggunakan videomu untuk training AI tanpa izin.' : 'Videos you upload for processing. We do not use your videos for AI training without permission.'}</p>
+              <p><strong>{isId ? 'Penggunaan:' : 'Usage:'}</strong> {isId ? 'Data penggunaan seperti halaman yang dikunjungi, waktu di halaman, untuk meningkatkan pengalaman. Semua data analitik real dari pengguna asli, bukan fake.' : 'Usage data like pages visited, time on page, to improve experience. All analytics real from genuine users, not fake.'}</p>
+              <p><strong>{isId ? 'Pembayaran:' : 'Payment:'}</strong> {isId ? 'Informasi pembayaran seperti paket yang dipilih, metode pembayaran, status transaksi. Kami tidak menyimpan nomor kartu.' : 'Payment info like chosen plan, payment method, transaction status. We do not store card numbers.'}</p>
             </div>
           </section>
 
           <section>
-            <h2 className="text-[16px] font-[700]">2. {isId ? 'Bagaimana Kami Gunakan' : 'How We Use'}</h2>
+            <h2 className="text-[16px] font-[700]">2. {isId ? 'Bagaimana Kami Menggunakan Data' : 'How We Use Data'}</h2>
             <ul className="mt-3 list-disc pl-5 space-y-1.5 text-[#3A3A3A]">
-              <li>{isId ? 'Realtime analytics untuk dashboard admin: active now (last 5 min), today views, top pages 24h, countries, recent events polling 5 detik' : 'Realtime analytics for admin dashboard: active now, today views, top pages, countries'}</li>
-              <li>{isId ? 'Auth untuk proteksi /editor dan /projects, JWT httpOnly Secure SameSite Lax 7 hari' : 'Auth to protect /editor and /projects, JWT httpOnly 7 days'}</li>
-              <li>{isId ? 'Subscription untuk cek akses plan free sampai business Rp 100k, expire 30 hari' : 'Subscription to check access free to business $6.30, expire 30 days'}</li>
-              <li>{isId ? 'Email via Resend untuk verifikasi dan notifikasi payment success' : 'Email via Resend for verification and payment success notification'}</li>
+              <li>{isId ? 'Untuk menyediakan dan meningkatkan layanan AutoClipp AI' : 'To provide and improve AutoClipp AI service'}</li>
+              <li>{isId ? 'Untuk autentikasi dan keamanan akun kamu' : 'For authentication and your account security'}</li>
+              <li>{isId ? 'Untuk memproses langganan dan verifikasi pembayaran' : 'To process subscription and payment verification'}</li>
+              <li>{isId ? 'Untuk mengirim email verifikasi dan notifikasi penting' : 'To send verification emails and important notifications'}</li>
+              <li>{isId ? 'Untuk analitik agar kami tahu fitur apa yang paling membantu' : 'For analytics so we know which features help most'}</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-[16px] font-[700]">3. {isId ? 'Keamanan Super Ketat' : 'Super Strict Security'}</h2>
+            <h2 className="text-[16px] font-[700]">3. {isId ? 'Keamanan Data' : 'Data Security'}</h2>
             <p className="mt-3 text-[#3A3A3A]">
-              {isId ? 'Admin login kall/Haekal123 dengan captcha 6 karakter alphanumeric case sensitive, SVG noise, expires 2 menit, one-time use, rate limit 5 fail/10 menit lock 15 menit IP, PBKDF2 100k iterations. User auth JWT HS256, admin JWT HS256 8 jam. Semua cookie httpOnly Secure SameSite Lax. CORS hanya untuk autoclipp-ai.vercel.app dan localhost.' : 'Admin login kall/Haekal123 with captcha 6 chars case sensitive, expires 2 min, rate limit 5 fails lock 15 min, PBKDF2 100k. JWT HS256, httpOnly Secure.'}
+              {isId ? 'Kami menerapkan keamanan berlapis: enkripsi, cookie httpOnly Secure, SameSite, rate limiting, dan captcha untuk area sensitif. Akses admin terbatas dan diawasi. Kami tidak pernah membagikan password atau kredensial sensitif di halaman publik.' : 'We implement layered security: encryption, httpOnly Secure cookies, SameSite, rate limiting, and captcha for sensitive areas. Admin access is restricted and monitored. We never share passwords or sensitive credentials on public pages.'}
             </p>
           </section>
 
           <section>
             <h2 className="text-[16px] font-[700]">4. {isId ? 'Hak Kamu' : 'Your Rights'}</h2>
             <p className="mt-3 text-[#3A3A3A]">
-              {isId ? 'Kamu bisa request hapus data di /admin atau email ke support. Data analytics real user tidak dijual, hanya untuk internal optimasi. Made by XySpace, branding logo monokrom simple.' : 'You can request data deletion via admin or email. Real user analytics not sold, only internal optimization. Made by XySpace.'}
+              {isId ? 'Kamu bisa meminta akses, koreksi, atau penghapusan data pribadimu kapan saja dengan menghubungi kami. Data analitik tidak dijual ke pihak ketiga, hanya untuk optimasi internal. Kami menghormati privasi kreator Indonesia.' : 'You can request access, correction, or deletion of your personal data anytime by contacting us. Analytics data is not sold to third parties, only for internal optimization. We respect Indonesian creators privacy.'}
             </p>
           </section>
+
+          <section>
+            <h2 className="text-[16px] font-[700]">5. {isId ? 'Kontak' : 'Contact'}</h2>
+            <p className="mt-3 text-[#3A3A3A]">
+              {isId ? 'Jika ada pertanyaan tentang privasi, hubungi tim XySpace melalui halaman support. Kami akan merespon dalam 1x24 jam.' : 'If you have privacy questions, contact XySpace team via support page. We will respond within 24 hours.'}
+            </p>
+          </section>
+        </div>
+
+        <div className="mt-12 rounded-[16px] bg-[#0A0A0A] text-white p-6">
+          <h3 className="text-[13px] font-[700]">{isId ? 'Komitmen Kami' : 'Our Commitment'}</h3>
+          <p className="mt-2 text-[12px] text-white/60 leading-[1.6]">
+            {isId ? 'Privasi kamu penting. Kami hanya mengumpulkan yang diperlukan, menjaga dengan aman, dan tidak pernah menjual data. Semua rating dan feedback di homepage adalah dari pengguna asli yang real, bukan bot.' : 'Your privacy matters. We only collect what is needed, keep it secure, and never sell data. All ratings and feedback on homepage are from real genuine users, not bots.'}
+          </p>
         </div>
       </div>
     </div>

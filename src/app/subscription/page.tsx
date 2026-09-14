@@ -34,10 +34,10 @@ export default function SubscriptionPage() {
       })
       .catch(() => setLoading(false))
 
-    fetch(`${AUTH_URL}/subscription/me`, { credentials: 'include' })
+    fetch(`${AUTH_URL}/auth/me`, { credentials: 'include' })
       .then(r => r.json())
       .then(data => {
-        if (data.subscription) setCurrentPlan(data.subscription.plan)
+        if (data.user?.subscription) setCurrentPlan(data.user.subscription.plan)
       })
       .catch(() => {})
   }, [])
@@ -62,10 +62,8 @@ export default function SubscriptionPage() {
         return
       }
 
-      // Show QRIS modal with real verification
       setShowQris(data)
       
-      // Start polling for payment status
       const poll = setInterval(async () => {
         try {
           const statusRes = await fetch(`${AUTH_URL}/payment/status/${data.payment_id}`, { credentials: 'include' })
@@ -74,14 +72,14 @@ export default function SubscriptionPage() {
             clearInterval(poll)
             setCurrentPlan(planId)
             setShowQris(null)
-            alert(`Pembayaran berhasil! Plan ${planId} aktif.`)
+            alert(`Pembayaran berhasil! Paket ${planId} aktif.`)
           }
         } catch {}
       }, 3000)
 
-      setTimeout(() => clearInterval(poll), 1000 * 60 * 10) // Stop polling after 10 min
+      setTimeout(() => clearInterval(poll), 1000 * 60 * 10)
     } catch (e: any) {
-      alert(e.message || 'Checkout failed')
+      alert(e.message || 'Checkout gagal')
     }
     setCheckingOut(null)
   }
@@ -90,27 +88,26 @@ export default function SubscriptionPage() {
     <div className="min-h-screen bg-[#FCFCF9]">
       <div className="sticky top-0 z-40 border-b border-[#E8E8E3] bg-[#FCFCF9]/90 backdrop-blur-xl">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8 h-[56px] flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-[8px] bg-[#0A0A0A] flex items-center justify-center text-white text-[12px] font-[800]">A</div>
+          <Link href="/id" className="flex items-center gap-2">
+            <img src="/logo.png" alt="logo" className="h-7 w-7 rounded-[8px] bg-[#0A0A0A] object-cover" />
             <span className="text-[13px] font-[700] tracking-[-0.02em]">autoclipp</span>
-            <span className="ml-2 text-[10px] font-[600] tracking-[0.06em] uppercase text-[#6B6B6B]">Subscription</span>
+            <span className="ml-2 text-[10px] font-[600] tracking-[0.06em] uppercase text-[#6B6B6B]">Pricing</span>
           </Link>
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-1 rounded-full bg-[#F5F5F0] p-1 border border-[#E8E8E3] mr-2">
               <button onClick={() => setPaymentMethod('qris')} className={`px-3 py-1 rounded-full text-[11px] font-[600] ${paymentMethod === 'qris' ? 'bg-[#0A0A0A] text-white' : 'text-[#6B6B6B]'}`}>QRIS</button>
               <button onClick={() => setPaymentMethod('dana')} className={`px-3 py-1 rounded-full text-[11px] font-[600] ${paymentMethod === 'dana' ? 'bg-[#0A0A0A] text-white' : 'text-[#6B6B6B]'}`}>DANA</button>
             </div>
-            <Link href="/editor"><Button size="sm" variant="outline" className="h-8">Editor</Button></Link>
-            <Link href="/projects"><Button size="sm" className="h-8">Projects</Button></Link>
+            <Link href="/id/editor"><Button size="sm" variant="outline" className="h-8">Editor</Button></Link>
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-[1280px] px-6 lg:px-8 py-12 lg:py-16">
         <div className="text-center max-w-[640px] mx-auto">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[11px] font-[600] tracking-[0.02em]">REAL QRIS & DANA VERIFICATION • 5RB - 100RB</div>
-          <h1 className="mt-4 text-[32px] lg:text-[44px] font-[750] tracking-[-0.04em] leading-[0.95]">Bayar QRIS/DANA, langsung aktif</h1>
-          <p className="mt-4 text-[14px] leading-[1.6] text-[#6B6B6B]">Scan QRIS pakai DANA, GoPay, OVO, ShopeePay. Sistem auto verifikasi ketika sudah bayar sesuai nominal. Mulai Rp 5.000.</p>
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[11px] font-[600] tracking-[0.02em]">MULAI DARI RP 5.000 / BULAN • TANPA WATERMARK</div>
+          <h1 className="mt-4 text-[32px] lg:text-[44px] font-[750] tracking-[-0.04em] leading-[0.95]">Pilih paket yang cocok</h1>
+          <p className="mt-4 text-[14px] leading-[1.6] text-[#6B6B6B]">Mulai gratis selamanya. Upgrade kapan saja dari Rp 5 ribu sampai Rp 100 ribu. Bayar QRIS/DANA, langsung aktif. Batalkan kapan saja.</p>
         </div>
 
         {loading ? (
@@ -140,12 +137,12 @@ export default function SubscriptionPage() {
                 </div>
                 <div className="mt-8">
                   {currentPlan === plan.id ? (
-                    <Button disabled className="w-full h-10 bg-[#F5F5F0] text-[#6B6B6B] border border-[#E8E8E3]">Current Plan</Button>
+                    <Button disabled className="w-full h-10 bg-[#F5F5F0] text-[#6B6B6B] border border-[#E8E8E3]">Paket Saat Ini</Button>
                   ) : plan.price === 0 ? (
-                    <Link href="/editor" className="block"><Button variant="outline" className="w-full h-10">Start Free</Button></Link>
+                    <Link href="/id/editor" className="block"><Button variant="outline" className="w-full h-10">Mulai Gratis</Button></Link>
                   ) : (
                     <Button onClick={() => handleCheckout(plan.id)} disabled={checkingOut === plan.id} className="w-full h-10">
-                      {checkingOut === plan.id ? 'Generating QRIS...' : `Bayar ${plan.price_idr} via ${paymentMethod.toUpperCase()}`}
+                      {checkingOut === plan.id ? 'Memproses...' : `Bayar ${plan.price_idr} via ${paymentMethod.toUpperCase()}`}
                     </Button>
                   )}
                 </div>
@@ -153,27 +150,36 @@ export default function SubscriptionPage() {
             ))}
           </div>
         )}
+
+        <div className="mt-12 rounded-[16px] border border-[#E8E8E3] bg-white p-6 text-center">
+          <h3 className="text-[13px] font-[700]">Metode Pembayaran</h3>
+          <p className="mt-2 text-[12px] text-[#6B6B6B] max-w-[600px] mx-auto">Dukung QRIS, DANA, GoPay, OVO, ShopeePay, Virtual Account BCA/Mandiri/BNI/BRI, Alfamart, Indomaret. Semua pembayaran diverifikasi real, akses aktif otomatis setelah bayar.</p>
+          <div className="mt-4 flex justify-center gap-2 flex-wrap">
+            {['QRIS', 'DANA', 'GoPay', 'OVO', 'ShopeePay', 'BCA VA', 'Mandiri VA'].map(m => (
+              <span key={m} className="text-[10px] px-2.5 py-1 rounded-full bg-[#F5F5F0] border border-[#E8E8E3] font-[500]">{m}</span>
+            ))}
+          </div>
+        </div>
       </div>
 
       {showQris && (
         <div className="fixed inset-0 z-50 bg-[#0A0A0A]/60 backdrop-blur-xl flex items-center justify-center p-4">
           <Card className="w-full max-w-[380px] p-6 text-center">
             <div className="text-[14px] font-[700]">Scan untuk bayar — {showQris.plan_id}</div>
-            <div className="text-[11px] text-[#6B6B6B] mt-1">Order: {showQris.order_id} • Rp {showQris.amount.toLocaleString('id-ID')}</div>
+            <div className="text-[11px] text-[#6B6B6B] mt-1">Order: {showQris.order_id} • {showQris.amount ? `Rp ${showQris.amount.toLocaleString('id-ID')}` : ''}</div>
             
             <div className="mt-4 mx-auto w-[240px] h-[240px] rounded-[16px] border border-[#E8E8E3] bg-white p-3 flex items-center justify-center">
               <img src={showQris.qris_url} alt="QRIS" className="w-full h-full object-contain" />
             </div>
 
             <div className="mt-4 text-[11px] leading-[1.5] text-[#6B6B6B] text-left bg-[#F5F5F0] border border-[#E8E8E3] rounded-[12px] p-3">
-              <div className="font-[600] text-[#0A0A0A]">Cara bayar {showQris.payment_method.toUpperCase()}:</div>
-              <div className="mt-1">{showQris.instructions}</div>
-              <div className="mt-2 font-mono text-[10px] truncate">QRIS: {showQris.qris_string?.slice(0, 50)}...</div>
+              <div className="font-[600] text-[#0A0A0A]">Cara bayar:</div>
+              <div className="mt-1">Buka aplikasi DANA/GoPay/OVO, scan QR di atas, bayar sesuai nominal. Akses otomatis aktif setelah pembayaran berhasil.</div>
             </div>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-[#6B6B6B]">
               <div className="h-4 w-4 rounded-full border-2 border-[#E8E8E3] border-t-[#0A0A0A] animate-spin" />
-              Menunggu pembayaran... auto verifikasi
+              Menunggu pembayaran...
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2">
@@ -185,15 +191,13 @@ export default function SubscriptionPage() {
                     if (data.payment?.status === 'paid') {
                       setCurrentPlan(showQris.plan_id)
                       setShowQris(null)
-                      alert('Pembayaran verified!')
+                      alert('Pembayaran berhasil!')
                     } else {
-                      alert(`Status: ${data.payment?.status}. Belum dibayar atau menunggu webhook. Admin bisa manual approve di /admin/payments`)
+                      alert(`Status: ${data.payment?.status}. Jika sudah bayar, tunggu beberapa detik dan cek lagi.`)
                     }
                   })
               }}>Cek Status</Button>
             </div>
-
-            <div className="mt-3 text-[10px] text-[#9B9B9B]">Sistem real: Midtrans webhook /payment/webhook/midtrans auto aktifkan langganan ketika sudah bayar sesuai nominal</div>
           </Card>
         </div>
       )}

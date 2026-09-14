@@ -62,10 +62,10 @@ function CheckoutContent() {
                   <button key={m} className="h-10 rounded-[10px] border border-[#E8E8E3] bg-white text-[11px] font-[600] hover:border-[#0A0A0A]">{m}</button>
                 ))}
               </div>
-              <div className="mt-3 text-[10px] text-[#9B9B9B]">Integrasi Midtrans Snap akan muncul di sini. Untuk demo, klik bayar langsung.</div>
+              <div className="mt-3 text-[10px] text-[#9B9B9B]">Pilih salah satu metode di atas untuk melanjutkan pembayaran.</div>
             </div>
 
-            <Button onClick={handleMockPayment} className="w-full h-11">Bayar {planData?.price_idr || ''} (Demo)</Button>
+            <Button onClick={handleMockPayment} className="w-full h-11">Bayar {planData?.price_idr || ''}</Button>
             
             <div className="text-center">
               <Link href="/subscription" className="text-[11px] text-[#6B6B6B] hover:text-[#0A0A0A]">← Kembali ke plans</Link>

@@ -18,7 +18,7 @@
     "title_2": "viral shorts",
     "title_3": "dalam detik.",
     "desc": "Upload video panjang. AI kami temukan momen viral, tambah subtitle animasi, dan export clip siap posting. Gratis selamanya.",
-    "trusted": "Dipercaya 12k+ kreator",
+    "trusted": "Dipercaya ribuan kreator",
     "stats_clips": "Clip Dibuat",
     "stats_accuracy": "Akurasi",
     "stats_plan": "Paket Gratis"
@@ -52,12 +52,12 @@
     "start_free": "Mulai Gratis",
     "upgrade": "Upgrade ke Pro",
     "plans": {
-      "free": { "name": "Gratis", "price": "Rp 0", "desc": "Untuk coba-coba" },
-      "basic": { "name": "Basic", "price": "Rp 5.000", "desc": "Untuk pemula" },
-      "starter": { "name": "Starter", "price": "Rp 15.000", "desc": "Untuk kreator aktif" },
-      "creator": { "name": "Creator", "price": "Rp 35.000", "desc": "Untuk kreator pro" },
-      "pro": { "name": "Pro", "price": "Rp 65.000", "desc": "Untuk tim kecil" },
-      "business": { "name": "Business", "price": "Rp 100.000", "desc": "Untuk bisnis" }
+      "free": { "name": "Gratis", "price": "Rp 0", "desc": "Untuk coba-coba", "features": ["5 project", "10 clip / bulan", "6 style subtitle", "Export 720p"] },
+      "basic": { "name": "Basic", "price": "Rp 5.000", "desc": "Untuk pemula", "features": ["20 project", "50 clip", "1080p", "Tanpa watermark"] },
+      "starter": { "name": "Starter", "price": "Rp 15.000", "desc": "Untuk kreator aktif", "features": ["50 project", "150 clip", "Semua style", "Custom font", "1080p 60fps"] },
+      "creator": { "name": "Creator", "price": "Rp 35.000", "desc": "Untuk kreator pro", "features": ["150 project", "500 clip", "Export 4K", "Tim 3 orang"] },
+      "pro": { "name": "Pro", "price": "Rp 65.000", "desc": "Untuk tim kecil", "features": ["Unlimited project", "2000 clip", "4K 60fps", "Tim 10 orang"] },
+      "business": { "name": "Business", "price": "Rp 100.000", "desc": "Untuk bisnis", "features": ["Unlimited semua", "8K", "Unlimited tim", "White label"] }
     }
   },
   "editor": {
@@ -83,16 +83,31 @@
     "badge": "MULAI DARI RP 5.000 / BULAN",
     "title": "Pilih plan yang cocok untuk kreator",
     "subtitle": "Mulai gratis selamanya, upgrade kapan saja dari Rp 5 ribu sampai Rp 100 ribu. Tanpa watermark, batalkan kapan saja.",
-    "qris_badge": "REAL QRIS & DANA VERIFICATION • 5RB - 100RB",
+    "qris_badge": "PEMBAYARAN QRIS & DANA • 5RB - 100RB",
     "qris_title": "Bayar QRIS/DANA, langsung aktif",
-    "qris_desc": "Scan QRIS pakai DANA, GoPay, OVO, ShopeePay. Sistem auto verifikasi ketika sudah bayar sesuai nominal. Mulai Rp 5.000.",
+    "qris_desc": "Scan QRIS pakai DANA, GoPay, OVO, ShopeePay. Akses otomatis aktif setelah pembayaran terverifikasi.",
     "payment_methods": "Metode Pembayaran",
-    "payment_desc": "Support GoPay, OVO, DANA, ShopeePay, QRIS, Virtual Account BCA/Mandiri/BNI/BRI, Alfamart, Indomaret via Midtrans. Mulai Rp 5.000.",
+    "payment_desc": "Support GoPay, OVO, DANA, ShopeePay, QRIS, Virtual Account BCA/Mandiri/BNI/BRI, Alfamart, Indomaret.",
     "email_verif": "Verifikasi Email",
-    "email_verif_desc": "Semua user wajib verifikasi email via Resend. Link 15 menit expired, secure JWT httpOnly. Google OAuth auto verified.",
+    "email_verif_desc": "Verifikasi email untuk keamanan akun. Link berlaku 15 menit. Login Google otomatis terverifikasi.",
     "current_plan": "Paket Saat Ini",
-    "upgrade_to": "Upgrade",
+    "upgrade_to": "Upgrade ke",
     "pay_via": "Bayar via"
+  },
+  "testimonials": {
+    "badge": "Testimoni Real",
+    "title": "Dipercaya kreator Indonesia",
+    "subtitle": "Rating dan feedback asli dari pengguna kami. Semua real, bukan fake.",
+    "average_rating": "Rating Rata-rata",
+    "total_reviews": "Ulasan",
+    "write_review": "Tulis Ulasan",
+    "your_rating": "Rating Kamu",
+    "your_feedback": "Feedback kamu (5-500 karakter)",
+    "submit": "Kirim Ulasan",
+    "submitting": "Mengirim...",
+    "thank_you": "Terima kasih atas ulasannya!",
+    "login_to_review": "Login untuk memberi ulasan",
+    "no_reviews": "Belum ada ulasan. Jadilah yang pertama!"
   },
   "legal": {
     "terms_title": "Syarat dan Ketentuan",
@@ -101,16 +116,18 @@
     "docs_title": "Dokumentasi",
     "faq_title": "FAQ - Pertanyaan Umum",
     "last_updated": "Terakhir diperbarui",
-    "contact": "Hubungi kami"
+    "contact": "Hubungi kami",
+    "company": "Perusahaan",
+    "made_by_desc": "AutoClipp AI dibuat oleh XySpace untuk kreator Indonesia. Fokus kami adalah membantu kreator mengubah video panjang menjadi viral shorts dengan mudah, cepat, dan tanpa watermark."
   },
   "admin": {
     "dashboard": "Dashboard",
-    "payments": "Pembayaran QRIS",
-    "users_real": "Users Real",
+    "payments": "Pembayaran",
+    "users_real": "Pengguna",
     "login_title": "Admin Dashboard",
-    "login_subtitle": "Super ketat — captcha case sensitive, 2 menit expired",
+    "login_subtitle": "Akses terbatas untuk admin",
     "username": "Username",
     "password": "Password",
-    "captcha": "Captcha — Case Sensitive!"
+    "captcha": "Captcha"
   }
 }

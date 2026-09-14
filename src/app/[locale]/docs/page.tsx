@@ -11,81 +11,78 @@ export default async function DocsPage({ params }: { params: Promise<{ locale: s
     <div className="min-h-screen bg-[#FCFCF9]">
       <div className="mx-auto max-w-[900px] px-6 py-12">
         <Link href={`/${locale}`} className="text-[12px] text-[#6B6B6B]">← {isId ? 'Kembali' : 'Back'}</Link>
-        <h1 className="mt-6 text-[32px] font-[750] tracking-[-0.03em]">Documentation — {isId ? 'Lengkap' : 'Complete'}</h1>
-        <p className="mt-2 text-[12px] text-[#6B6B6B]">Made by XySpace • Backend real ready • QRIS/DANA verification</p>
+        <h1 className="mt-6 text-[32px] font-[750] tracking-[-0.03em]">{isId ? 'Dokumentasi' : 'Documentation'}</h1>
+        <p className="mt-2 text-[12px] text-[#6B6B6B]">{isId ? 'Panduan lengkap menggunakan AutoClipp AI' : 'Complete guide to using AutoClipp AI'} • {isId ? 'Dibuat oleh' : 'Made by'} XySpace</p>
 
         <div className="mt-8 grid lg:grid-cols-[200px_1fr] gap-8">
           <div className="hidden lg:block sticky top-6 h-fit space-y-6 text-[12px]">
             <div>
-              <div className="font-[700] tracking-[0.06em] uppercase text-[11px]">Getting Started</div>
+              <div className="font-[700] tracking-[0.06em] uppercase text-[11px]">{isId ? 'Mulai' : 'Getting Started'}</div>
               <div className="mt-2 space-y-1.5 text-[#6B6B6B]">
-                <div className="text-black font-[600]">Quick Start</div>
-                <div>Auth Cloudflare</div>
-                <div>Upload Video</div>
-                <div>Generate Clips</div>
+                <div className="text-black font-[600]">{isId ? 'Mulai Cepat' : 'Quick Start'}</div>
+                <div>{isId ? 'Upload Video' : 'Upload Video'}</div>
+                <div>{isId ? 'Generate Clip' : 'Generate Clips'}</div>
+                <div>{isId ? 'Edit & Export' : 'Edit & Export'}</div>
               </div>
             </div>
             <div>
-              <div className="font-[700] tracking-[0.06em] uppercase text-[11px]">Features</div>
+              <div className="font-[700] tracking-[0.06em] uppercase text-[11px]">{isId ? 'Fitur' : 'Features'}</div>
               <div className="mt-2 space-y-1.5 text-[#6B6B6B]">
-                <div>Subtitle Styles</div>
-                <div>QRIS Payment</div>
-                <div>Admin Dashboard</div>
-                <div>Analytics Realtime</div>
+                <div>{isId ? 'Gaya Subtitle' : 'Subtitle Styles'}</div>
+                <div>{isId ? 'Pembayaran' : 'Payments'}</div>
+                <div>{isId ? 'Ulasan Real' : 'Real Reviews'}</div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-10">
+          <div className="space-y-6">
             <section className="rounded-[20px] border border-[#E8E8E3] bg-white p-6">
-              <h2 className="text-[18px] font-[700] tracking-[-0.02em]">Quick Start — {isId ? 'Mulai dalam 30 detik' : 'Start in 30s'}</h2>
+              <h2 className="text-[18px] font-[700] tracking-[-0.02em]">{isId ? 'Mulai dalam 30 detik' : 'Start in 30s'}</h2>
               <div className="mt-4 space-y-3 text-[13px] leading-[1.6] text-[#3A3A3A]">
-                <div><strong>1. Login:</strong> Buka /auth/login → Google OAuth (client m02ck9r... redirect sudah set) atau email magic link via Resend. Email wajib verified.</div>
-                <div><strong>2. Upload:</strong> Drop video MP4/MOV di /editor atau paste YouTube URL (backend yt-dlp). File upload ke Cloudinary via /api/upload server-side.</div>
-                <div><strong>3. Generate:</strong> Klik Generate Clips → POST /api/transcribe (edge) → POST /api/clips (Llama 3.3) → dapat 5 viral clips dengan score.</div>
-                <div><strong>4. Edit:</strong> Pilih clip, ganti hook, pilih 6 subtitle styles (Hormozi, MrBeast, Karaoke, Minimal, TikTok, Editorial), animasi pop/bounce/slide, font size, words per line, position.</div>
-                <div><strong>5. Export:</strong> Preview 9:16 realtime canvas dengan blur background + smart crop, export via FFmpeg.wasm.</div>
+                <div><strong>1. {isId ? 'Login:' : 'Login:'}</strong> {isId ? 'Buka halaman login, gunakan Google atau email. Verifikasi email kamu untuk keamanan.' : 'Open login page, use Google or email. Verify your email for security.'}</div>
+                <div><strong>2. {isId ? 'Upload:' : 'Upload:'}</strong> {isId ? 'Drag & drop video MP4/MOV hingga 2GB di editor, atau paste URL YouTube. Video akan diproses otomatis.' : 'Drag & drop MP4/MOV up to 2GB in editor, or paste YouTube URL. Video will be processed automatically.'}</div>
+                <div><strong>3. {isId ? 'Generate:' : 'Generate:'}</strong> {isId ? 'Klik Generate Clips. AI akan transkrip dan temukan 5 momen viral dengan skor tertinggi.' : 'Click Generate Clips. AI will transcribe and find 5 viral moments with highest scores.'}</div>
+                <div><strong>4. {isId ? 'Edit:' : 'Edit:'}</strong> {isId ? 'Pilih clip, edit hook, pilih 6 gaya subtitle (Hormozi, MrBeast, Karaoke, Minimal, TikTok, Editorial), atur animasi, font, posisi.' : 'Select clip, edit hook, choose 6 subtitle styles (Hormozi, MrBeast, Karaoke, Minimal, TikTok, Editorial), adjust animation, font, position.'}</div>
+                <div><strong>5. {isId ? 'Export:' : 'Export:'}</strong> {isId ? 'Preview 9:16 realtime dengan blur background dan smart crop, lalu export siap posting ke TikTok/Reels/Shorts.' : 'Preview 9:16 realtime with blur background and smart crop, then export ready for TikTok/Reels/Shorts.'}</div>
               </div>
             </section>
 
             <section className="rounded-[20px] border border-[#E8E8E3] bg-white p-6">
-              <h2 className="text-[16px] font-[700]">Auth — Cloudflare Workers + D1</h2>
-              <div className="mt-3 text-[12px] leading-[1.6] text-[#3A3A3A] space-y-2">
-                <p><strong>Worker:</strong> autoclipp-auth.akuntiktok76y.workers.dev — Hono framework, D1 binding DB, JWT HS256, PBKDF2 password.</p>
-                <p><strong>Google OAuth:</strong> Client ID 495336144977-m02ck9r... + secret GOCSPX-rAbj... redirect https://autoclipp-auth.../auth/google/callback sudah set di JSON lu, langsung berfungsi.</p>
-                <p><strong>Email:</strong> POST /auth/email/send → generate token 15 min, simpan D1 email_tokens, kirim Resend. GET /auth/email/verify?token= → verify, set email_verified=1, sign JWT, set cookie auth_token httpOnly Secure 7 hari.</p>
-                <p><strong>Middleware:</strong> Next.js middleware cek auth_token, fetch /auth/me ke Cloudflare, cek email_verified, redirect ke /auth/login atau /auth/verify jika belum.</p>
+              <h2 className="text-[16px] font-[700]">{isId ? 'Gaya Subtitle' : 'Subtitle Styles'}</h2>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-[12px]">
+                <div className="rounded-[12px] bg-[#F5F5F0] p-3"><div className="font-[700]">Hormozi</div><div className="text-[#6B6B6B] mt-1">{isId ? 'Bold, uppercase, impactful' : 'Bold, uppercase, impactful'}</div></div>
+                <div className="rounded-[12px] bg-[#F5F5F0] p-3"><div className="font-[700]">MrBeast</div><div className="text-[#6B6B6B] mt-1">{isId ? 'Warna-warni, energetic' : 'Colorful, energetic'}</div></div>
+                <div className="rounded-[12px] bg-[#F5F5F0] p-3"><div className="font-[700]">Karaoke</div><div className="text-[#6B6B6B] mt-1">{isId ? 'Highlight kata per kata' : 'Word-by-word highlight'}</div></div>
+                <div className="rounded-[12px] bg-[#F5F5F0] p-3"><div className="font-[700]">Minimal</div><div className="text-[#6B6B6B] mt-1">{isId ? 'Clean, simple, elegan' : 'Clean, simple, elegant'}</div></div>
+                <div className="rounded-[12px] bg-[#F5F5F0] p-3"><div className="font-[700]">TikTok</div><div className="text-[#6B6B6B] mt-1">{isId ? 'Style viral TikTok' : 'Viral TikTok style'}</div></div>
+                <div className="rounded-[12px] bg-[#F5F5F0] p-3"><div className="font-[700]">Editorial</div><div className="text-[#6B6B6B] mt-1">{isId ? 'Professional, serif' : 'Professional, serif'}</div></div>
               </div>
             </section>
 
             <section className="rounded-[20px] border border-[#E8E8E3] bg-white p-6">
-              <h2 className="text-[16px] font-[700]">Payment QRIS/DANA Real Verification — 5k-100k IDR</h2>
+              <h2 className="text-[16px] font-[700]">{isId ? 'Langganan & Pembayaran' : 'Subscription & Payment'}</h2>
               <div className="mt-3 text-[12px] leading-[1.6] text-[#3A3A3A] space-y-2">
-                <p><strong>Create:</strong> POST /payment/create-qris dengan plan_id basic/starter/creator/pro/business (5000-100000) + payment_method qris/dana → generate order_id AUTOCLIPP-XXXX, QRIS string EMV, simpan D1 payments status pending.</p>
-                <p><strong>QRIS:</strong> Return qris_url untuk QR image, user scan pakai DANA/GoPay/OVO/ShopeePay/BCA mobile, bayar sesuai nominal.</p>
-                <p><strong>Midtrans:</strong> Jika MIDTRANS_SERVER_KEY set, charge ke api.sandbox.midtrans.com/v2/charge, dapat qr_string. Webhook POST /payment/webhook/midtrans dengan transaction_status settlement → update paid, insert subscriptions active 30 hari, email Resend.</p>
-                <p><strong>Manual Admin:</strong> Jika Midtrans belum set, admin cek mutasi, approve di /admin/payments → subscription aktif. Frontend polling /payment/status/:id tiap 3 detik.</p>
-                <p><strong>Real:</strong> Semua total revenue SUM(amount) paid, pending count, active subscriptions COUNT(*) real dari D1, bukan fake.</p>
+                <p>{isId ? 'Mulai gratis Rp 0 selamanya. Upgrade kapan saja mulai Rp 5.000 hingga Rp 100.000 per bulan. Semua pembayaran terverifikasi real — ketika kamu scan QRIS dan bayar sesuai nominal, akses otomatis aktif.' : 'Start free $0 forever. Upgrade anytime from $0.32 to $6.30 per month. All payments real verified — when you scan QRIS and pay exact amount, access auto active.'}</p>
+                <p><strong>{isId ? 'Metode:' : 'Methods:'}</strong> {isId ? 'QRIS, DANA, GoPay, OVO, ShopeePay, Virtual Account BCA/Mandiri/BNI/BRI, Alfamart, Indomaret.' : 'QRIS, DANA, GoPay, OVO, ShopeePay, VA BCA/Mandiri/BNI/BRI, Alfamart, Indomaret.'}</p>
+                <p><strong>{isId ? 'Durasi:' : 'Duration:'}</strong> {isId ? '30 hari per pembayaran, bisa diperpanjang otomatis.' : '30 days per payment, can be extended automatically.'}</p>
+              </div>
+            </section>
+
+            <section className="rounded-[20px] border border-[#E8E8E3] bg-white p-6">
+              <h2 className="text-[16px] font-[700]">{isId ? 'Rating & Feedback Real' : 'Real Rating & Feedback'}</h2>
+              <div className="mt-3 text-[12px] leading-[1.6] text-[#3A3A3A] space-y-2">
+                <p>{isId ? 'Semua rating dan testimoni di homepage adalah dari pengguna asli, bukan fake. Kamu bisa memberikan ulasan setelah login. Rating disimpan real dan ditampilkan realtime.' : 'All ratings and testimonials on homepage are from real users, not fake. You can leave review after login. Ratings stored real and displayed realtime.'}</p>
+                <p>{isId ? 'Kami tidak pernah membuat review palsu. Kepercayaan kreator adalah yang utama.' : 'We never create fake reviews. Creator trust is paramount.'}</p>
               </div>
             </section>
 
             <section className="rounded-[20px] border border-[#E8E8E3] bg-[#0A0A0A] text-white p-6">
-              <h2 className="text-[16px] font-[700]">Admin Dashboard — kall / Haekal123 + Captcha Super Ketat</h2>
+              <h2 className="text-[16px] font-[700]">{isId ? 'Tips Viral' : 'Viral Tips'}</h2>
               <div className="mt-3 text-[12px] leading-[1.6] text-white/60 space-y-2">
-                <p><strong>Login:</strong> /admin/login dengan username kall, password Haekal123, captcha 6 chars alphanumeric case sensitive, SVG noise, expires 2 menit, one-time, rate limit 5 fail/10 min lock 15 min IP, PBKDF2 100k.</p>
-                <p><strong>Dashboard:</strong> /admin/dashboard → stats total_users, pending_payments, paid_payments, active_subscriptions, total_revenue real dari D1, plus realtime analytics active_now, today_views, top_pages, countries, recent events polling 5s.</p>
-                <p><strong>Payments:</strong> /admin/payments → list payments dengan QRIS image, approve/reject, subscription auto active.</p>
-                <p><strong>Users:</strong> /admin/users → real users dari D1, email verified status, provider, current plan.</p>
-              </div>
-            </section>
-
-            <section className="rounded-[20px] border border-[#E8E8E3] bg-white p-6">
-              <h2 className="text-[16px] font-[700]">SEO + Branding + Realtime Analytics</h2>
-              <div className="mt-3 text-[12px] leading-[1.6] text-[#3A3A3A] space-y-2">
-                <p><strong>Logo:</strong> Monokrom simple A + play, /logo.png, /icon.png, /favicon.png, /og-image.png 1200x630, branding premium.</p>
-                <p><strong>SEO:</strong> metadataBase, title template, description, keywords, OG, Twitter card, robots, icons, theme-color, alternates languages id/en.</p>
-                <p><strong>Realtime:</strong> D1 analytics_events + analytics_sessions, track page_view, time_on_page, IP CF-Connecting-IP, country CF-IPCountry, device mobile/desktop, referrer, session_id localStorage, keepalive fetch.</p>
-                <p><strong>Multi Bahasa:</strong> /id/* dan /en/*, middleware auto detect dari Accept-Language header + CF-IPCountry + cookie NEXT_LOCALE, redirect otomatis HP.</p>
+                <p>• {isId ? 'Hook 3 detik pertama menentukan segalanya. Gunakan AI hook generator kami.' : 'First 3 seconds hook determines everything. Use our AI hook generator.'}</p>
+                <p>• {isId ? 'Subtitle besar dan animasi meningkatkan retention 40%.' : 'Big subtitles and animation increase retention 40%.'}</p>
+                <p>• {isId ? 'Export 1080x1920 60fps untuk kualitas maksimal di TikTok/Reels.' : 'Export 1080x1920 60fps for max quality on TikTok/Reels.'}</p>
+                <p>• {isId ? 'Posting jam 7-9 malam untuk engagement tertinggi.' : 'Post 7-9 PM for highest engagement.'}</p>
               </div>
             </section>
           </div>
