@@ -4,20 +4,27 @@ import { cookies } from 'next/headers'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const token = searchParams.get('token')
-  const next = searchParams.get('next') ?? '/editor'
+  const next = searchParams.get('next') ?? '/id/editor'
 
   // Cloudflare auth callback
   if (token) {
     const cookieStore = await cookies()
+    // Use SameSite=None + Secure so cross-site auth works, plus httpOnly for security
+    // Also need non-httpOnly version for frontend fallback via JS page
     cookieStore.set('auth_token', token, {
       httpOnly: true,
       secure: true,
-      sameSite: 'lax',
+      sameSite: 'none',
       maxAge: 60 * 60 * 24 * 7,
       path: '/'
     })
     
-    return NextResponse.redirect(`${origin}${next}`)
+    // Redirect to locale callback page that will store in localStorage
+    const localeNext = next.startsWith('/id/') || next.startsWith('/en/') ? next : `/id${next.startsWith('/') ? next : `/${next}`}`
+    const redirectUrl = new URL(`${origin}${localeNext.startsWith('/id/auth/callback') || localeNext.startsWith('/en/auth/callback') ? localeNext : `/id/auth/callback`}`)
+    redirectUrl.searchParams.set('token', token)
+    redirectUrl.searchParams.set('next', next)
+    return NextResponse.redirect(redirectUrl.toString())
   }
 
   // Supabase fallback (legacy)
@@ -36,7 +43,7 @@ export async function GET(request: Request) {
           setAll(cookiesToSet) {
             try {
               cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
+                cookieStore.set(name, value, { ...options, sameSite: 'none' as any, secure: true })
               )
             } catch {}
           },

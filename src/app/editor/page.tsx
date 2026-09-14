@@ -7,11 +7,12 @@ import { Card } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
+import { SUBTITLE_STYLES, SUBTITLE_ANIMATIONS } from '@/lib/subtitle-styles'
 
 type Word = { word: string; start: number; end: number }
 type Clip = { id: number; start: number; end: number; duration: number; hook: string; score: number; label: string; words: Word[] }
 
-// Icons - no emoji, use SVG
+// Icons - no emoji, SVG clean
 const IconUpload = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
 )
@@ -42,34 +43,46 @@ const IconSpark = () => (
 const IconFilm = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
 )
+const IconUser = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+)
 
-const STYLES: any = {
-  hormozi: { name: 'Hormozi', desc: 'Yellow highlight viral', font: 'Anton', text: '#FFFFFF', highlight: '#FFD60A', stroke: '#000000', sw: 8, bg: 'transparent', upper: true, previewText: 'RAHASIA', previewSub: 'KAYA', usage: '67%', bgPreview: '#0A0A0A' },
-  mrbeast: { name: 'MrBeast', desc: 'Big bold energetic', font: 'Bebas Neue', text: '#FFFFFF', highlight: '#FF3B30', stroke: '#000000', sw: 10, bg: 'transparent', upper: true, previewText: 'INSANE', previewSub: 'VIRAL', usage: '23%', bgPreview: '#1A1A1A' },
-  karaoke: { name: 'Karaoke', desc: 'Box highlight word', font: 'Montserrat', text: '#0A0A0A', highlight: '#FFFFFF', stroke: 'transparent', sw: 0, bg: '#FFD60A', upper: false, previewText: 'Karaoke', previewSub: 'Box', usage: '18%', bgPreview: '#FFD60A' },
-  minimal: { name: 'Minimal', desc: 'Clean professional', font: 'Inter', text: '#0A0A0A', highlight: '#0A0A0A', stroke: '#FFFFFF', sw: 0, bg: 'rgba(255,255,255,0.9)', upper: false, previewText: 'Clean', previewSub: 'Pro', usage: '12%', bgPreview: '#F5F5F0' },
-  tiktok: { name: 'TikTok', desc: '2 words center viral', font: 'Oswald', text: '#FFFFFF', highlight: '#FF2D55', stroke: '#000000', sw: 6, bg: 'transparent', upper: true, previewText: 'VIRAL', previewSub: 'NOW', usage: '34%', bgPreview: '#000000' },
-  editorial: { name: 'Editorial', desc: 'Serif premium', font: 'Georgia', text: '#0A0A0A', highlight: '#0A0A0A', stroke: '#FFFFFF', sw: 4, bg: 'rgba(255,255,255,0.95)', upper: false, previewText: 'Premium', previewSub: 'Story', usage: '9%', bgPreview: '#FFFFFF' },
-  netflix: { name: 'Netflix', desc: 'Red cinematic', font: 'Bebas Neue', text: '#FFFFFF', highlight: '#E50914', stroke: '#000000', sw: 6, bg: 'transparent', upper: true, previewText: 'CINEMA', previewSub: 'RED', usage: '15%', bgPreview: '#000000' },
-  youtube: { name: 'YouTube', desc: 'White bold clean', font: 'Inter', text: '#FFFFFF', highlight: '#FF0000', stroke: '#000000', sw: 5, bg: 'transparent', upper: false, previewText: 'YouTube', previewSub: 'Style', usage: '28%', bgPreview: '#212121' },
-  bold: { name: 'Bold', desc: 'Extra bold white', font: 'Anton', text: '#FFFFFF', highlight: '#FFFFFF', stroke: '#000000', sw: 9, bg: 'transparent', upper: true, previewText: 'BOLD', previewSub: 'TEXT', usage: '19%', bgPreview: '#0A0A0A' },
-  glow: { name: 'Glow', desc: 'Neon glow effect', font: 'Montserrat', text: '#FFFFFF', highlight: '#00FF88', stroke: '#000000', sw: 4, bg: 'transparent', upper: true, previewText: 'GLOW', previewSub: 'NEON', usage: '11%', bgPreview: '#0A0A0A' },
-  outline: { name: 'Outline', desc: 'Outline only', font: 'Bebas Neue', text: 'transparent', highlight: '#FFFFFF', stroke: '#FFFFFF', sw: 3, bg: 'transparent', upper: true, previewText: 'OUTLINE', previewSub: 'ONLY', usage: '8%', bgPreview: '#000000' },
-  shadow: { name: 'Shadow', desc: 'Soft shadow', font: 'Inter', text: '#FFFFFF', highlight: '#FFD60A', stroke: '#000000', sw: 0, bg: 'transparent', upper: false, previewText: 'Shadow', previewSub: 'Soft', usage: '13%', bgPreview: '#2A2A2A' },
-}
+// Map shared styles to editor internal structure so canvas matches showcase HTML exactly
+const STYLES: any = {}
+Object.values(SUBTITLE_STYLES).forEach((s: any) => {
+  const parts = s.preview.split(' ')
+  STYLES[s.id] = {
+    id: s.id,
+    name: s.name,
+    desc: s.desc,
+    font: s.font,
+    fontClass: s.fontClass,
+    text: s.textColor,
+    textColor: s.textColor,
+    highlight: s.highlightColor,
+    highlightColor: s.highlightColor,
+    stroke: s.strokeColor,
+    strokeColor: s.strokeColor,
+    sw: s.strokeWidth,
+    strokeWidth: s.strokeWidth,
+    bg: s.bgColor,
+    bgColor: s.bgColor,
+    bgClass: s.bgClass,
+    textClass: s.textClass,
+    highlightClass: s.highlightClass,
+    upper: s.upper,
+    usage: s.usage,
+    bgPreview: s.bgPreview,
+    previewText: parts[0] || s.preview.slice(0,6),
+    previewSub: parts.slice(1).join(' ') || parts[0],
+    preview: s.preview,
+  }
+})
 
-const ANIMATIONS: any = {
-  pop: { name: 'Pop', desc: 'Scale pop', usage: '45%' },
-  bounce: { name: 'Bounce', desc: 'Bouncy', usage: '22%' },
-  slide: { name: 'Slide', desc: 'Slide up', usage: '15%' },
-  fade: { name: 'Fade', desc: 'Fade in', usage: '8%' },
-  karaoke: { name: 'Karaoke', desc: 'Box word', usage: '18%' },
-  wave: { name: 'Wave', desc: 'Wave motion', usage: '11%' },
-  typewriter: { name: 'Typewriter', desc: 'Ketik per huruf', usage: '14%' },
-  glitch: { name: 'Glitch', desc: 'Glitch effect', usage: '7%' },
-  zoom: { name: 'Zoom', desc: 'Zoom in', usage: '12%' },
-  rotate: { name: 'Rotate', desc: 'Rotate 3D', usage: '6%' },
-}
+const ANIMATIONS: any = {}
+Object.values(SUBTITLE_ANIMATIONS).forEach((a: any) => {
+  ANIMATIONS[a.id] = { name: a.name, desc: a.desc, usage: a.usage }
+})
 
 const FONTS = ['Anton', 'Bebas Neue', 'Montserrat', 'Inter', 'Oswald', 'Georgia', 'Poppins', 'Space Grotesk']
 
@@ -128,9 +141,13 @@ export default function EditorPage() {
   const style = {
     ...baseStyle,
     text: customTextColor || baseStyle.text,
+    textColor: customTextColor || baseStyle.textColor,
     highlight: customHighlightColor || baseStyle.highlight,
+    highlightColor: customHighlightColor || baseStyle.highlightColor,
     stroke: customStrokeColor || baseStyle.stroke,
+    strokeColor: customStrokeColor || baseStyle.strokeColor,
     bg: customBgColor || baseStyle.bg,
+    bgColor: customBgColor || baseStyle.bgColor,
     font: customFont || baseStyle.font,
   }
 
@@ -411,17 +428,20 @@ export default function EditorPage() {
         // @ts-ignore
         if (skew) ctx.transform(1, skew, 0, 1, 0, 0)
         ctx.scale(scale,scale)
-        if (style.bg !== 'transparent') {
-          ctx.fillStyle = style.bg
+        // Background box — exact same logic as showcase: if bgColor not transparent, draw rounded box
+        if (style.bgColor !== 'transparent' && style.bg !== 'transparent') {
+          ctx.fillStyle = style.bgColor || style.bg
           ctx.beginPath()
           // @ts-ignore
           if (ctx.roundRect) ctx.roundRect(-mw/2-20, -tht/2-10, mw+40, tht+20, 12); else ctx.rect(-mw/2-20, -tht/2-10, mw+40, tht+20)
           ctx.fill()
         }
-        if (styleKey==='glow') { ctx.shadowColor = style.highlight; ctx.shadowBlur = 20 }
-        if (style.sw>0 && style.stroke !== 'transparent') {
-          ctx.strokeStyle = style.stroke
-          ctx.lineWidth = style.sw
+        // Glow effect same as showcase
+        if (styleKey==='glow') { ctx.shadowColor = style.highlightColor || style.highlight; ctx.shadowBlur = 20 }
+        // Stroke — same as showcase WebkitTextStroke logic
+        if ((style.strokeWidth>0 || style.sw>0) && style.strokeColor !== 'transparent' && style.stroke !== 'transparent') {
+          ctx.strokeStyle = style.strokeColor || style.stroke
+          ctx.lineWidth = style.strokeWidth || style.sw
           ctx.lineJoin='round'
           ctx.strokeText(text,0,0)
         }
@@ -432,9 +452,9 @@ export default function EditorPage() {
             const isCur = cur && w.word===cur.word
             const wt = style.upper ? w.word.toUpperCase() : w.word
             const ww = ctx.measureText(wt+' ').width
-            ctx.fillStyle = isCur ? style.highlight : style.text
-            if (style.text === 'transparent') {
-              ctx.strokeStyle = style.highlight
+            ctx.fillStyle = isCur ? (style.highlightColor || style.highlight) : (style.textColor || style.text)
+            if ((style.textColor || style.text) === 'transparent') {
+              ctx.strokeStyle = style.highlightColor || style.highlight
               ctx.lineWidth = 2
               ctx.strokeText(wt+' ', xo+ww/2, 0)
             } else {
@@ -443,12 +463,12 @@ export default function EditorPage() {
             xo+=ww
           })
         } else {
-          if (style.text === 'transparent') {
-            ctx.strokeStyle = style.highlight
+          if ((style.textColor || style.text) === 'transparent') {
+            ctx.strokeStyle = style.highlightColor || style.highlight
             ctx.lineWidth = 3
             ctx.strokeText(text,0,0)
           } else {
-            ctx.fillStyle = style.text
+            ctx.fillStyle = style.textColor || style.text
             ctx.fillText(text,0,0)
           }
         }
@@ -626,6 +646,7 @@ export default function EditorPage() {
               <Link href="/id" className="px-3 py-1 rounded-full text-[12px] font-[500] text-[#6B6B6B] hover:text-[#0A0A0A]">Home</Link>
               <span className="px-3 py-1 rounded-full bg-[#0A0A0A] text-white text-[12px] font-[600]">Editor</span>
               <Link href="/id/projects" className="px-3 py-1 rounded-full text-[12px] font-[500] text-[#6B6B6B] hover:text-[#0A0A0A]">Projects</Link>
+              <Link href="/id/profile" className="px-3 py-1 rounded-full text-[12px] font-[500] text-[#6B6B6B] hover:text-[#0A0A0A] flex items-center gap-1"><IconUser />Profile</Link>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -699,7 +720,7 @@ export default function EditorPage() {
               <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-white text-black">WAJIB KLIK</span>
             </div>
             <div className="text-[11px] text-white/60 leading-[1.5] mb-4">
-              Setelah upload video atau tempel YouTube di Langkah 1, klik tombol besar di bawah untuk buat 5 clip viral otomatis. Tombol ini ada di sini!
+              Setelah upload video atau tempel YouTube di Langkah 1, klik tombol besar di bawah untuk buat 5 clip viral otomatis. Tombol ini ada di sini! Shared lib sama dengan preview halaman utama.
             </div>
             <Button className="w-full h-12 bg-white text-black hover:bg-[#FFD60A] text-[13px] font-[700] gap-2" disabled={!isGenerateEnabled} onClick={handleTranscribe}>
               <IconFilm />{isProcessing ? 'Memproses...' : isYoutubeLoading ? 'Mengambil YouTube...' : youtubeInfo ? `Buat Clip Viral` : 'Buat Clip Viral Sekarang'}
@@ -716,7 +737,7 @@ export default function EditorPage() {
             )}
             {isGenerateEnabled && (
               <div className="mt-3 rounded-[10px] bg-[#FFD60A] text-black p-2.5 text-[11px] font-[600] flex items-center gap-2">
-                <IconCheck />Siap! Klik untuk generate clips
+                <IconCheck />Siap! Klik untuk generate clips — style sama dengan landing
               </div>
             )}
           </Card>
@@ -747,11 +768,11 @@ export default function EditorPage() {
           </Card>
         </div>
 
-        {/* CENTER - Preview with PLAY BUTTON ICON */}
+        {/* CENTER - Preview */}
         <div className="col-span-12 lg:col-span-5 space-y-4">
           <Card className="p-3 lg:p-4">
             <div className="flex items-center justify-between mb-3 px-1">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Langkah 4 - Preview 9:16</h2>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Langkah 4 - Preview 9:16 (Sama Landing)</h2>
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-[600] px-2 py-1 rounded-full bg-[#0A0A0A] text-white">1080x1920</span>
                 <button onClick={()=>setLoopPreview(!loopPreview)} className={`text-[10px] font-[600] px-2 py-1 rounded-full border ${loopPreview ? 'bg-[#FFD60A] border-[#FFD60A] text-black' : 'bg-[#F5F5F0] border-[#E8E8E3]'}`}>{loopPreview ? 'Loop ON' : 'Loop OFF'}</button>
@@ -795,8 +816,8 @@ export default function EditorPage() {
                     </div>
                   </div>
                   <div className="absolute top-3 left-3 right-3 flex justify-between">
-                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10 font-[600]">{style.name} - {ANIMATIONS[anim]?.name}</span>
-                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-[#FFD60A] text-black font-[700]">PREVIEW</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-black/60 text-white backdrop-blur-md border border-white/10 font-[600]">{style.name} - {ANIMATIONS[anim]?.name} • {style.font}</span>
+                    <span className="text-[10px] px-2.5 py-1 rounded-full bg-[#FFD60A] text-black font-[700]">PREVIEW • {style.usage}</span>
                   </div>
                 </>
               ) : youtubeInfo ? (
@@ -857,7 +878,7 @@ export default function EditorPage() {
               <Button className="h-10 bg-[#FFD60A] text-black hover:bg-[#FFC700] text-[12px] font-[700] gap-1.5" disabled={!selectedClip} onClick={doExport}><IconDownload />Export</Button>
             </div>
             <div className="mt-2 text-[10px] text-[#9B9B9B] text-center">
-              Langkah: 1 Upload - 2 Generate Clip Viral - 3 Pilih Clip - 4 Tes Play - 5 Simpan & Export
+              Langkah: 1 Upload - 2 Generate Clip Viral - 3 Pilih Clip - 4 Tes Play - 5 Simpan & Export • Style shared dengan landing
             </div>
           </Card>
         </div>
@@ -866,7 +887,7 @@ export default function EditorPage() {
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Gaya Subtitle - 12 Style</h2>
+              <h2 className="text-[12px] font-[700] tracking-[0.06em] uppercase">Gaya Subtitle - 12 Style (Sama Landing)</h2>
               <span className="text-[10px] font-[600] px-2 py-0.5 rounded-full bg-[#0A0A0A] text-white">{Object.keys(STYLES).length} STYLE</span>
             </div>
             
@@ -903,7 +924,7 @@ export default function EditorPage() {
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Animasi - 10 Animasi</label>
+                  <label className="text-[10px] font-[700] tracking-[0.08em] uppercase text-[#6B6B6B]">Animasi - 10 Animasi (Sama Landing)</label>
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#F5F5F0] border border-[#E8E8E3]">{Object.keys(ANIMATIONS).length} ANIM</span>
                 </div>
                 <div className="mt-2 grid grid-cols-3 gap-1.5">
@@ -949,7 +970,7 @@ export default function EditorPage() {
                       <div>
                         <label className="text-[10px] font-[600]">Warna Teks</label>
                         <div className="mt-1 flex gap-2">
-                          <input type="color" value={customTextColor || baseStyle.text === 'transparent' ? '#FFFFFF' : baseStyle.text} onChange={e=>setCustomTextColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
+                          <input type="color" value={customTextColor || (baseStyle.text === 'transparent' ? '#FFFFFF' : baseStyle.text)} onChange={e=>setCustomTextColor(e.target.value)} className="h-8 w-8 rounded-full border border-[#E8E8E3] cursor-pointer" />
                           <input value={customTextColor} onChange={e=>setCustomTextColor(e.target.value)} placeholder={baseStyle.text} className="flex-1 h-8 rounded-full border border-[#E8E8E3] bg-white px-3 text-[11px] font-mono" />
                         </div>
                       </div>
@@ -990,7 +1011,7 @@ export default function EditorPage() {
                     </div>
 
                     <div className="rounded-[8px] bg-white border border-[#E8E8E3] p-2.5">
-                      <div className="text-[10px] font-[600] mb-1.5">Preview Custom Warna</div>
+                      <div className="text-[10px] font-[600] mb-1.5">Preview Custom Warna (sama kayak showcase)</div>
                       <div className="rounded-[8px] h-[60px] flex items-center justify-center" style={{ background: baseStyle.bgPreview }}>
                         <div className="font-[900] text-[16px]" style={{ 
                           color: style.text === 'transparent' ? 'transparent' : style.text,
@@ -1046,14 +1067,14 @@ export default function EditorPage() {
           </Card>
 
           <Card className="p-4 bg-[#0A0A0A] text-white border-[#0A0A0A]">
-            <h3 className="text-[11px] font-[700] tracking-[0.06em] uppercase">Fitur Editor Lengkap</h3>
+            <h3 className="text-[11px] font-[700] tracking-[0.06em] uppercase">Fitur Editor Lengkap — Shared Lib</h3>
             <div className="mt-2 text-[11px] leading-[1.5] text-white/60 space-y-1">
-              <div className="flex items-center gap-1.5"><IconCheck />12 gaya subtitle + preview visual (bukan hitam)</div>
-              <div className="flex items-center gap-1.5"><IconCheck />10 animasi + demo live + icon</div>
+              <div className="flex items-center gap-1.5"><IconCheck />12 gaya subtitle + preview visual sama kayak landing</div>
+              <div className="flex items-center gap-1.5"><IconCheck />10 animasi + demo live + icon (shared lib)</div>
               <div className="flex items-center gap-1.5"><IconCheck />Custom warna teks, highlight, stroke, bg + 8 font</div>
-              <div className="flex items-center gap-1.5"><IconCheck />Tombol play besar + tes sebelum export + icon</div>
-              <div className="flex items-center gap-1.5"><IconCheck />Langkah jelas: 1 Upload - 2 Generate - 3 Preview - 4 Export</div>
-              <div className="flex items-center gap-1.5"><IconCheck />Simpan project + export MP4 1080x1920 - fungsi aktif</div>
+              <div className="flex items-center gap-1.5"><IconCheck />Tombol play besar icon SVG + tes sebelum export</div>
+              <div className="flex items-center gap-1.5"><IconCheck />Langkah jelas: 1 Upload - 2 Generate - 3 Pilih - 4 Preview - 5 Simpan Export</div>
+              <div className="flex items-center gap-1.5"><IconCheck />Canvas render pakai SUBTITLE_STYLES lib sama dengan showcase</div>
             </div>
           </Card>
         </div>

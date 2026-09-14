@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/client'
 
 const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'https://autoclipp-auth.akuntiktok76y.workers.dev'
 
@@ -45,23 +46,65 @@ export default function SubscriptionPage() {
       })
       .catch(() => setLoading(false))
 
-    // Cek auth — pakai credentials include + Authorization header fallback
-    fetch(`${AUTH_URL}/auth/me`, { credentials: 'include', headers: getAuthHeaders() })
-      .then(r => r.json())
-      .then(data => {
+    const checkAuth = async () => {
+      let foundUser: any = null
+
+      // 1. Cloudflare auth via /auth/me with Bearer + cookie
+      try {
+        const res = await fetch(`${AUTH_URL}/auth/me`, { credentials: 'include', headers: getAuthHeaders() })
+        const data = await res.json()
         if (data.user) {
+          foundUser = data.user
           setUser(data.user)
           if (data.user.subscription) setCurrentPlan(data.user.subscription.plan)
+          localStorage.setItem('user_profile', JSON.stringify(data.user))
+          localStorage.setItem('user_email', data.user.email || '')
         }
-        setAuthChecked(true)
-      })
-      .catch(() => setAuthChecked(true))
+      } catch {}
+
+      // 2. Supabase fallback
+      if (!foundUser) {
+        try {
+          const supabase = createClient()
+          const { data: { user: sbUser } } = await supabase.auth.getUser()
+          if (sbUser) {
+            foundUser = { email: sbUser.email, id: sbUser.id, provider: 'supabase' }
+            setUser(foundUser)
+            localStorage.setItem('user_email', sbUser.email || '')
+            localStorage.setItem('user_profile', JSON.stringify(foundUser))
+          }
+        } catch {}
+      }
+
+      // 3. localStorage profile fallback (from /profile page)
+      if (!foundUser) {
+        try {
+          const stored = localStorage.getItem('user_profile')
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            foundUser = parsed
+            setUser(parsed)
+            if (parsed.subscription?.plan) setCurrentPlan(parsed.subscription.plan)
+          } else {
+            const email = localStorage.getItem('user_email')
+            const token = localStorage.getItem('auth_token')
+            if (email || token) {
+              foundUser = { email: email || 'User', token }
+              setUser(foundUser)
+            }
+          }
+        } catch {}
+      }
+
+      setAuthChecked(true)
+    }
+
+    checkAuth()
   }, [])
 
   const handleCheckout = async (planId: string) => {
     if (planId === 'free') return
     
-    // Jika belum login, redirect ke login — jangan tampilkan Unauthorized popup
     if (!user && authChecked) {
       const goLogin = confirm('Login dulu untuk bayar paket. Mau login sekarang?')
       if (goLogin) {
@@ -81,9 +124,8 @@ export default function SubscriptionPage() {
       const data = await res.json()
       
       if (!res.ok) {
-        // Handle Unauthorized dengan jelas — bukan popup promo
         if (res.status === 401 || data.error?.includes('Unauthorized')) {
-          alert('Sesi habis atau belum login. Silakan login dulu untuk bayar.')
+          alert('Sesi habis atau belum login. Silakan login dulu untuk bayar. Buka halaman Profile untuk memastikan login tersimpan.')
           window.location.href = `/id/auth/login?next=/subscription&plan=${planId}`
           return
         }
@@ -112,9 +154,8 @@ export default function SubscriptionPage() {
 
       setTimeout(() => clearInterval(poll), 1000 * 60 * 10)
     } catch (e: any) {
-      // Jangan tampilkan Unauthorized mentah — kasih pesan yang jelas
       if (e.message?.includes('Unauthorized')) {
-        alert('Belum login. Silakan login dulu untuk melanjutkan pembayaran.')
+        alert('Belum login. Silakan login dulu. Cek halaman Profile untuk pastikan sesi tersimpan.')
         window.location.href = `/id/auth/login?next=/subscription`
       } else {
         alert(e.message || 'Checkout gagal, coba lagi')
@@ -137,6 +178,7 @@ export default function SubscriptionPage() {
               <button onClick={() => setPaymentMethod('qris')} className={`px-3 py-1 rounded-full text-[11px] font-[600] ${paymentMethod === 'qris' ? 'bg-[#0A0A0A] text-white' : 'text-[#6B6B6B]'}`}>QRIS</button>
               <button onClick={() => setPaymentMethod('dana')} className={`px-3 py-1 rounded-full text-[11px] font-[600] ${paymentMethod === 'dana' ? 'bg-[#0A0A0A] text-white' : 'text-[#6B6B6B]'}`}>DANA</button>
             </div>
+            <Link href="/id/profile"><Button size="sm" variant="outline" className="h-8 gap-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</Button></Link>
             <Link href="/id/editor"><Button size="sm" variant="outline" className="h-8">Editor</Button></Link>
           </div>
         </div>
@@ -146,15 +188,15 @@ export default function SubscriptionPage() {
         <div className="text-center max-w-[640px] mx-auto">
           <div className="inline-flex items-center gap-2 rounded-full bg-[#0A0A0A] text-white px-3 py-1 text-[11px] font-[600] tracking-[0.02em]">MULAI DARI RP 5.000 / BULAN • TANPA WATERMARK</div>
           <h1 className="mt-4 text-[32px] lg:text-[44px] font-[750] tracking-[-0.04em] leading-[0.95]">Pilih paket yang cocok</h1>
-          <p className="mt-4 text-[14px] leading-[1.6] text-[#6B6B6B]">Mulai gratis selamanya. Upgrade kapan saja dari Rp 5 ribu sampai Rp 100 ribu. Bayar QRIS/DANA, langsung aktif.</p>
+          <p className="mt-4 text-[14px] leading-[1.6] text-[#6B6B6B]">Mulai gratis selamanya. Upgrade kapan saja dari Rp 5 ribu sampai Rp 100 ribu. Bayar QRIS/DANA, langsung aktif. Profile menyimpan login agar tidak "belum login" lagi.</p>
           {!user && authChecked && (
             <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-4 py-2 text-[11px] font-[600] text-amber-800">
-              ⚠️ Belum login — <Link href="/id/auth/login?next=/subscription" className="underline">Login dulu</Link> untuk bayar paket
+              Belum login — <Link href="/id/auth/login?next=/subscription" className="underline">Login dulu</Link> atau cek <Link href="/id/profile" className="underline">Profile</Link>
             </div>
           )}
           {user && (
             <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-green-50 border border-green-200 px-4 py-2 text-[11px] font-[600] text-green-800">
-              ✓ Login sebagai {user.email} • Paket: {currentPlan}
+              Login sebagai {user.email} • Paket: {currentPlan} • <Link href="/id/profile" className="underline">Profile</Link>
             </div>
           )}
         </div>
@@ -202,7 +244,7 @@ export default function SubscriptionPage() {
 
         <div className="mt-12 rounded-[16px] border border-[#E8E8E3] bg-white p-6 text-center">
           <h3 className="text-[13px] font-[700]">Metode Pembayaran</h3>
-          <p className="mt-2 text-[12px] text-[#6B6B6B] max-w-[600px] mx-auto">Dukung QRIS, DANA, GoPay, OVO, ShopeePay, Virtual Account. Pembayaran diverifikasi otomatis, akses aktif setelah bayar.</p>
+          <p className="mt-2 text-[12px] text-[#6B6B6B] max-w-[600px] mx-auto">Dukung QRIS, DANA, GoPay, OVO, ShopeePay, Virtual Account. Pembayaran diverifikasi otomatis, akses aktif setelah bayar. Login tersimpan di Profile agar tidak perlu login ulang.</p>
           <div className="mt-4 flex justify-center gap-2 flex-wrap">
             {['QRIS', 'DANA', 'GoPay', 'OVO', 'ShopeePay', 'BCA VA', 'Mandiri VA'].map(m => (
               <span key={m} className="text-[10px] px-2.5 py-1 rounded-full bg-[#F5F5F0] border border-[#E8E8E3] font-[500]">{m}</span>
